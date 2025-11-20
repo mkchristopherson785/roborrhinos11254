@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Robo Rhinos 11254 • Novi Middle School FTC</title>
   <meta name="description" content="Official website of Robo Rhinos FTC Team 11254 from Novi Middle School in Novi, Michigan." />
-  <meta name="theme-color" content="#0f8a5f" />
+  <meta name="theme-color" content="#222326" />
 
   <!-- Open Graph -->
   <meta property="og:title" content="Robo Rhinos 11254" />
@@ -20,31 +20,32 @@
 
   <style>
     :root{
-      --green:#0f8a5f; /* Novi-inspired */
-      --dark:#0b1f16;
-      --light:#f5f7f6;
-      --accent:#f5b301; /* rhino horn gold */
-      --muted:#e7efe9;
-      --text:#18241d;
-      --card:#ffffff;
-      --shadow:0 10px 30px rgba(0,0,0,.08);
-      --radius:18px;
+      --green: #07f134;       /* team neon */
+      --dark: #0e0e0f;        /* deep dark */
+      --dark-bg: #222326;     /* main background */
+      --dark-card: #2d2f33;   /* cards panels */
+      --dark-border: rgba(255,255,255,0.08);
+      --text: #ffffff;        /* main text */
+      --muted: #cfd2d4;       /* soft gray */
+      --accent: #07f134;
+      --radius: 18px;
+      --shadow: 0 10px 30px rgba(0,0,0,0.4);
     }
-
+    
     *{box-sizing:border-box}
     html,body{
       margin:0;
       padding:0;
-      background:var(--light);
+      background: var(--dark-bg);
       color:var(--text);
       font-family:"Outfit",system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif;
     }
-
+    
     a{color:var(--green);text-decoration:none}
     a:hover{text-decoration:underline}
-
+    
     .container{width:min(1100px, 92vw);margin-inline:auto}
-
+    
     /* Skip link */
     .skip-link{
       position:absolute;
@@ -66,7 +67,7 @@
       height:auto;
       transform:translateX(-50%);
     }
-
+    
     /* Buttons */
     .btn{
       display:inline-flex;
@@ -77,7 +78,7 @@
       border-radius:12px;
       border:none;
       background:var(--green);
-      color:#fff;
+      color: #000;
       font-weight:700;
       box-shadow:var(--shadow);
       cursor:pointer;
@@ -85,31 +86,31 @@
       font-size:.95rem;
     }
     .btn-alt{
-      background:var(--dark);
-      color:#fff;
+      background: #ffffff;
+      color: #000000;
     }
     .btn-sm{
       padding:.55rem .9rem;
       border-radius:10px;
       font-size:.85rem;
     }
-
+    
     /* Header */
     .topbar{
       position:sticky;
       top:0;
-      background:#fffddf;
-      color:#333;
+      background: #000000;
+      color: var(--green);
       font-size:.9rem;
       padding:.4rem 0;
       text-align:center;
       z-index:50;
-      border-bottom:1px dashed rgba(0,0,0,.1);
+      border-bottom: 1px dashed rgba(255,255,255,0.15);
     }
     header{
       position:sticky;
       top:28px;
-      background:#fff;
+      background: #000000;
       z-index:40;
       box-shadow:0 1px 0 rgba(0,0,0,.06);
     }
@@ -124,7 +125,7 @@
       align-items:center;
       gap:.8rem;
       font-weight:800;
-      color:var(--dark);
+      color:#fff;
     }
     .brand svg{height:36px;width:36px}
     .links{
@@ -134,7 +135,7 @@
     }
     .links a{
       font-weight:600;
-      color:var(--dark);
+      color:#fff;
       font-size:.95rem;
     }
     .menu-toggle{
@@ -145,14 +146,13 @@
       color:#0b1f16;
       width:40px;
       height:40px;
-      display:none;
     }
-
+    
     /* Hero */
     .hero{
       position:relative;
       overflow:hidden;
-      background:linear-gradient(180deg,#ffffff, #f3faf6);
+      background: linear-gradient(180deg, #1a1b1d, #222326);
     }
     .hero .container{
       display:grid;
@@ -167,7 +167,7 @@
       align-items:center;
       gap:.5rem;
       background:var(--muted);
-      color:#0b3c2d;
+      color:#000;
       border-radius:999px;
       padding:.35rem .7rem;
       font-weight:700;
@@ -177,10 +177,11 @@
       font-size:clamp(2rem, 6vw, 3.4rem);
       line-height:1.05;
       margin:.6rem 0 1rem;
+      color:#fff;
     }
     .subtitle{
       font-size:1.1rem;
-      color:#2f463a;
+      color:#cccccc;
       max-width:52ch;
     }
     .cta{
@@ -190,7 +191,7 @@
       margin-top:1.4rem;
     }
     .hero-card{
-      background:var(--card);
+      background:var(--dark-card);
       border-radius:var(--radius);
       box-shadow:var(--shadow);
       padding:1rem;
@@ -208,6 +209,7 @@
       gap:.6rem;
       margin-top:.6rem;
       font-size:.9rem;
+      color:var(--muted);
     }
     .stats{
       display:grid;
@@ -216,18 +218,18 @@
       margin-top:1rem;
     }
     .stat{
-      background:#fff;
+      background: #2d2f33;
       border-radius:14px;
       padding:1rem;
       text-align:center;
-      border:1px solid #edf3ee;
+      border: 1px solid var(--dark-border);
     }
     .stat .num{
       font-size:1.8rem;
       font-weight:800;
-      color:var(--green);
+      color: var(--green);
     }
-
+    
     /* Sections */
     section{padding:3.2rem 0}
     .section-title{
@@ -241,6 +243,7 @@
     .section-title h2{
       font-size:1.8rem;
       margin:0;
+      color:#fff;
     }
     .grid{
       display:grid;
@@ -248,12 +251,12 @@
     }
     .cols-3{grid-template-columns:repeat(3,1fr)}
     .cols-2{grid-template-columns:repeat(2,1fr)}
-    .card{
-      background:var(--card);
-      border-radius:var(--radius);
-      box-shadow:var(--shadow);
+    .card {
+      background: var(--dark-card);
+      border: 1px solid var(--dark-border);
+      color: var(--text);
       padding:1rem;
-      border:1px solid #edf3ee;
+      border-radius:var(--radius);
     }
     .card h3{
       margin:.2rem 0 .6rem;
@@ -262,7 +265,7 @@
       margin:0;
       padding-left:1.2rem;
     }
-
+    
     /* Team gallery */
     .people{
       display:grid;
@@ -271,7 +274,6 @@
     }
     .person{
       background:#fff;
-      border:1px solid #edf3ee;
       border-radius:16px;
       overflow:hidden;
       box-shadow:var(--shadow);
@@ -283,28 +285,72 @@
     }
     .person .info{
       padding:.8rem;
+      color: #000000;
     }
     .role{
       font-size:.9rem;
       color:#2b453a;
     }
-
-    /* Sponsors */
-    .sponsors{
-      display:grid;
-      grid-template-columns:repeat(4,1fr);
-      gap:1rem;
+    
+    /* SPONSORS */
+    .sponsor-heading {
+      font-size: 1.8rem;
+      margin: 2.2rem 0 1rem;
+      color: var(--green);
+      font-weight: 800;
+      text-align: center;
     }
-    .sponsors .logo{
-      background:#fff;
-      border:1px solid #edf3ee;
-      border-radius:14px;
-      display:grid;
-      place-items:center;
-      height:90px;
-      font-size:.9rem;
-      color:#4a6258;
+    
+    /* Flexible centered rows */
+    .sponsor-tier {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 1.5rem 3rem;
+      margin-bottom: 2.5rem;
     }
+    
+    /* Sponsor logo item */
+    .sponsor {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+    
+    /* Wrapper */
+    .sponsor .logo {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: .5rem;
+      background: transparent;
+      border:none;
+    }
+    
+    /* Base (Bronze) */
+    .sponsor img {
+      width: 100%;
+      max-width: 150px;
+      height: auto;
+      object-fit: contain;
+    }
+    
+    /* Gold */
+    .sponsor.gold img {
+      max-width: 190px;
+    }
+    
+    /* Silver */
+    .sponsor.silver img {
+      max-width: 170px;
+    }
+    
+    /* Bronze */
+    .sponsor.bronze img {
+      max-width: 150px;
+    }
+    
     .tier{
       font-size:.85rem;
       color:#37574a;
@@ -325,7 +371,7 @@
       width:100%;
       height:100%;
     }
-
+    
     /* Map placeholder */
     .map-placeholder{
       height:200px;
@@ -337,11 +383,11 @@
       font-size:.9rem;
       color:#56736a;
     }
-
+    
     /* Footer */
     footer{
-      background:var(--dark);
-      color:#c9e6da;
+      background: #111213;
+      color: #d0d0d0;
       padding:2.2rem 0;
       margin-top:2rem;
     }
@@ -354,12 +400,12 @@
       margin-top:0;
       margin-bottom:.4rem;
       font-size:1rem;
-      color:#e8fff6;
+      color: var(--green);
     }
     footer .list{
       list-style:disc;
       padding-left:1.2rem;
-      color:#a8c9bd;
+      color:#c7c7c7;
     }
     .social{
       display:flex;
@@ -372,19 +418,19 @@
       width:38px;
       height:38px;
       border-radius:10px;
-      background:#10271e;
-      color:#dff2ea;
+      background:#1a1a1a;
+      color:var(--green);
       font-size:.9rem;
       text-decoration:none;
     }
     .legal{
-      border-top:1px solid #133126;
+      border-top: 1px solid rgba(255,255,255,0.1);
       margin-top:1.2rem;
       padding-top:.8rem;
       font-size:.9rem;
-      color:#a8c9bd;
+      color:#c7c7c7;
     }
-
+    
     /* Utilities */
     .tag{
       display:inline-block;
@@ -396,10 +442,10 @@
       font-size:.8rem;
       font-weight:700;
     }
-    .muted{color:#486e60}
+    .muted{color:var(--muted)}
     .hidden{display:none}
     .center{text-align:center}
-
+    
     /* Responsive */
     @media (max-width: 900px){
       .hero .container{
@@ -407,9 +453,6 @@
         padding:3rem 0;
       }
       .people{
-        grid-template-columns:repeat(2,1fr);
-      }
-      .sponsors{
         grid-template-columns:repeat(2,1fr);
       }
       .cols-3,
@@ -430,7 +473,7 @@
         place-items:center;
       }
     }
-
+    
     @media (max-width: 600px){
       .stats{
         grid-template-columns:1fr 1fr;
@@ -480,7 +523,7 @@
         ≡
       </button>
     </nav>
-    <div id="mobile" class="hidden" style="background:#ffffff;border-top:1px solid #edf3ee">
+    <div id="mobile" class="hidden" style="background:#000000;border-top:1px solid #333">
       <div class="container" style="display:grid;gap:.6rem;padding:1rem 0">
         <a href="#about" onclick="closeMobileNav()">About</a>
         <a href="#team" onclick="closeMobileNav()">Team</a>
@@ -525,8 +568,8 @@
         </div>
         <div class="hero-card">
           <img
-            src="https://images.unsplash.com/photo-1526374870839-e155464bb9b2?q=80&w=1200&auto=format&fit=crop"
-            alt="Students working on a competition robot"
+            src="team.jpg"
+            alt="Robo Rhinos team photo"
           />
           <div class="hero-card-footer">
             <span class="tag">STEM • Coding • CAD • Outreach</span>
@@ -581,93 +624,62 @@
           <span class="tag">Students • Mentors • Coaches</span>
         </div>
         <div class="people" aria-label="Team members">
-          <!-- Duplicate person cards as needed -->
           <article class="person">
-            <img
-              src="Abhijay.jpg"
-              alt="Abhijay"
-            />
+            <img src="Abhijay.jpg" alt="Abhijay" />
             <div class="info">
               <h3>Abhijay</h3>
             </div>
           </article>
           <article class="person">
-            <img
-              src="andrew.jpg"
-              alt="andrew"
-            />
+            <img src="andrew.jpg" alt="andrew" />
             <div class="info">
               <h3>Andrew</h3>
             </div>
           </article>
           <article class="person">
-            <img
-              src="Ari.jpg"
-              alt="Ari"
-            />
+            <img src="Ari.jpg" alt="Ari" />
             <div class="info">
               <h3>Ari</h3>
             </div>
           </article>
           <article class="person">
-            <img
-              src="Drew.jpg"
-              alt="Drew"
-            />
+            <img src="Drew.jpg" alt="Drew" />
             <div class="info">
               <h3>Drew</h3>
             </div>
           </article>
           <article class="person">
-            <img
-              src="Ethan.jpg"
-              alt="Ethan"
-            />
+            <img src="Ethan.jpg" alt="Ethan" />
             <div class="info">
               <h3>Ethan</h3>
             </div>
           </article>
           <article class="person">
-            <img
-              src="Evie.jpg"
-              alt="Evie"
-            />
+            <img src="Evie.jpg" alt="Evie" />
             <div class="info">
               <h3>Evie</h3>
             </div>
           </article>
           <article class="person">
-            <img
-              src="Gavin.jpg"
-              alt="Gavin"
-            />
+            <img src="Gavin.jpg" alt="Gavin" />
             <div class="info">
               <h3>Gavin</h3>
             </div>
           </article>
           <article class="person">
-            <img
-              src="jakob.jpg"
-              alt="Jakob"
-            />
+            <img src="jakob.jpg" alt="Jakob" />
             <div class="info">
               <h3>Jakob</h3>
             </div>
           </article>
           <article class="person">
-            <img
-              src="logan.jpg"
-              alt="Logan"
-            />
+            <img src="logan.jpg" alt="Logan" />
             <div class="info">
               <h3>Logan</h3>
             </div>
           </article>
           <article class="person">
-            <img
-              src="Priyanka.jpg"
-              alt="Priyanka"
-            />
+            <img src="Priyanka.jpg" alt="Priyanka" />
             <div class="info">
               <h3>Priyanka</h3>
             </div>
@@ -741,23 +753,95 @@
           <h2 id="sptitle">Sponsors</h2>
           <a class="btn btn-sm" href="#contact">Become a Sponsor</a>
         </div>
-        <p class="muted">Thank you to the organizations and families who make our season possible.</p>
-        <div class="sponsors" aria-label="Sponsor logos">
-          <div>
-            <div class="logo">Logo</div>
-            <div class="tier">Platinum</div>
+        
+        <!-- GOLD -->
+        <h2 class="sponsor-heading">Gold Sponsors</h2>
+        <div class="sponsor-tier gold-tier">
+          <div class="sponsor gold">
+            <a href="https://eganix.com/" target="_blank" rel="noopener noreferrer" class="logo">
+              <img src="Eganix.png" alt="Eganix">
+            </a>
           </div>
-          <div>
-            <div class="logo">Logo</div>
-            <div class="tier">Gold</div>
+          <div class="sponsor gold">
+            <a href="https://www.gm.com/" target="_blank" rel="noopener noreferrer" class="logo">
+              <img src="GM.png" alt="GM">
+            </a>
           </div>
-          <div>
-            <div class="logo">Logo</div>
-            <div class="tier">Silver</div>
+          <div class="sponsor gold">
+            <!-- No link yet for Haley Wireless -->
+            <div class="logo">
+              <img src="HaleyWireless.png" alt="Haley Wireless">
+            </div>
           </div>
-          <div>
-            <div class="logo">Logo</div>
-            <div class="tier">Bronze</div>
+          <div class="sponsor gold">
+            <a href="https://www.mathworks.com/" target="_blank" rel="noopener noreferrer" class="logo">
+              <img src="MathWorks.png" alt="MathWorks">
+            </a>
+          </div>
+          <div class="sponsor gold">
+            <a href="https://www.motmot.ai/" target="_blank" rel="noopener noreferrer" class="logo">
+              <img src="motmot.png" alt="motmot">
+            </a>
+          </div>
+          <div class="sponsor gold">
+            <a href="https://www.ohm-advisors.com/" target="_blank" rel="noopener noreferrer" class="logo">
+              <img src="OHM.png" alt="OHM">
+            </a>
+          </div>
+          <div class="sponsor gold">
+            <a href="https://pipeline.us.com/" target="_blank" rel="noopener noreferrer" class="logo">
+              <img src="Pipeline.png" alt="Pipeline">
+            </a>
+          </div>
+        </div>
+        
+        <!-- SILVER -->
+        <h2 class="sponsor-heading">Silver Sponsors</h2>
+        <div class="sponsor-tier silver-tier">
+          <div class="sponsor silver">
+            <a href="https://atwell.com/" target="_blank" rel="noopener noreferrer" class="logo">
+              <img src="Atwell.png" alt="Atwell">
+            </a>
+          </div>
+        </div>
+        
+        <!-- BRONZE -->
+        <h2 class="sponsor-heading">Bronze Sponsors</h2>
+        <div class="sponsor-tier bronze-tier">
+          <div class="sponsor bronze">
+            <a href="https://www.athingz.com/" target="_blank" rel="noopener noreferrer" class="logo">
+              <img src="AThingz.png" alt="AThingz">
+            </a>
+          </div>
+          <div class="sponsor bronze">
+            <a href="https://g2consultinggroup.com/" target="_blank" rel="noopener noreferrer" class="logo">
+              <img src="ConsultingGroup.png" alt="G2 Consulting Group">
+            </a>
+          </div>
+          <div class="sponsor bronze">
+            <a href="https://hesco-mi.com/" target="_blank" rel="noopener noreferrer" class="logo">
+              <img src="Hesco.png" alt="Hesco">
+            </a>
+          </div>
+          <div class="sponsor bronze">
+            <a href="https://jgmvalve.com/" target="_blank" rel="noopener noreferrer" class="logo">
+              <img src="JGMValve.png" alt="JGM Valve">
+            </a>
+          </div>
+          <div class="sponsor bronze">
+            <a href="https://kennedyind.com/" target="_blank" rel="noopener noreferrer" class="logo">
+              <img src="Kennedy.png" alt="Kennedy Industries">
+            </a>
+          </div>
+          <div class="sponsor bronze">
+            <a href="https://redzone.com/" target="_blank" rel="noopener noreferrer" class="logo">
+              <img src="RedZoneRobotics.png" alt="RedZone Robotics">
+            </a>
+          </div>
+          <div class="sponsor bronze">
+            <a href="https://teamuis.com/" target="_blank" rel="noopener noreferrer" class="logo">
+              <img src="UIS.png" alt="Team UIS">
+            </a>
           </div>
         </div>
       </div>
@@ -935,7 +1019,7 @@
     const y = new Date().getFullYear();
     document.getElementById('year').textContent = y;
 
-    // Example: if founding was 2018 (update this for the real founding year)
+    // Example: if founding was 2014 (update this for the real founding year)
     const founding = 2014;
     const yearCountEl = document.getElementById('yearCount');
     if (yearCountEl) {
@@ -966,7 +1050,6 @@
     const ICS_WEBCAL = 'webcal://api.band.us/ical?token=aAAxADhmOTk1NWQyYzExOTU5NjU3YjRmYWNmMTFiY2M3NGU4ZDVmMDMyMDM';
     const ICS_HTTPS  = ICS_WEBCAL.replace('webcal://','https://');
 
-    // If you add subscribe links to the DOM later, you can hook them here
     const googleSub  = document.getElementById('google-sub');
     const outlookSub = document.getElementById('outlook-sub');
     const icsDownload = document.getElementById('ics-download');
