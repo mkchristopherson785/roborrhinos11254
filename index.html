@@ -374,15 +374,11 @@
     }
     
     /* Map placeholder */
-    .map-placeholder{
-      height:200px;
-      border:1px solid #edf3ee;
-      border-radius:12px;
-      display:grid;
-      place-items:center;
-      background:#fff;
-      font-size:.9rem;
-      color:#56736a;
+    .map-placeholder img.map-logo {
+      max-width: 400px;
+      width: 100%;
+      height: auto;
+      object-fit: contain;
     }
     
     /* Footer */
@@ -984,6 +980,9 @@
               <a href="mailto:coach@example.org">coach@example.org</a>
             </li>
           </ul>
+          <div class="map-placeholder">
+            <img src="robologo.png" alt="Robo Rhinos logo" class="map-logo">
+          </div>
         </div>
       </div>
     </section>
