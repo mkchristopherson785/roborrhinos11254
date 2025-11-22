@@ -1009,49 +1009,27 @@
         </div>
       </div>
     </section>
-   <section id="matches">
-  <div class="container card">
-    <h2>Recent Matches</h2>
-    <div id="match-list" class="list"></div>
+ <!-- MATCH RESULTS -->
+<section id="results" aria-labelledby="resultstitle">
+  <div class="container">
+    <div class="section-title">
+      <h2 id="resultstitle">Match Results</h2>
+      <span class="tag">Live FTC Data from The Orange Alliance</span>
+    </div>
+
+    <div class="card">
+      <p class="muted">Latest match results for Robo Rhinos • Team 11254.</p>
+
+      <!-- Where match data will appear -->
+      <div id="toa-results" style="margin-top:1.5rem;">
+        <p class="muted">Loading match results…</p>
+      </div>
+    </div>
   </div>
 </section>
 
-<script>
-  async function loadMatches() {
-    const list = document.getElementById("match-list");
-    list.textContent = "Loading…";
-
-    try {
-      const res = await fetch("/.netlify/functions/toa?team=11254&season=2526");
-      if (!res.ok) {
-        throw new Error("API error: " + res.status);
-      }
-      const data = await res.json();
-
-      if (!Array.isArray(data) || data.length === 0) {
-        list.textContent = "No events found yet.";
-        return;
-      }
-
-      list.innerHTML = "";
-
-      data.forEach(ev => {
-        const item = document.createElement("div");
-        item.style.marginBottom = "0.5rem";
-        item.innerHTML = `
-          <strong>${ev.event_name || ev.event_key}</strong>
-          <span class="muted"> • ${ev.city || ""} ${ev.state_prov || ""}</span>
-        `;
-        list.appendChild(item);
-      });
-    } catch (e) {
-      console.error(e);
-      list.textContent = "Could not load match data.";
-    }
-  }
-
-  loadMatches();
-</script>
+<!-- Load the data fetch script -->
+<script src="toa-matches.js"></script>
     <!-- AWARDS -->
     <section id="awards" aria-labelledby="awardstitle">
       <div class="container">
