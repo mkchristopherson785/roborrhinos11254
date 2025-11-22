@@ -1,59 +1,67 @@
-// netlify/functions/toa.js
+// toa.js
+document.addEventListener("DOMContentLoaded", () => {
+  const container = document.getElementById("match-results");
 
-export async function handler(event, context) {
-  const API_KEY = process.env.TOA_API_KEY;       // stored in Netlify
-  const APP_ORIGIN = process.env.TOA_APP_ORIGIN || "roborrhinos.netlify.app";
+  if (!container) return; // No match-results section on this page
 
-  if (!API_KEY) {
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: "Missing TOA_API_KEY in environment" }),
-    };
-  }
+  container.innerHTML = "<p>Loading match data…</p>";
 
-  // read team & season from query params
-  const params = event.queryStringParameters || {};
-  const teamNumber = params.team || "11254";
-  const season = params.season || "2526"; // adjust as needed
+  fetch("/.netlify/functions/toa-matches")
+    .then((res) => {
+      if (!res.ok) {
+        throw new Error("Network response was not ok: " + res.status);
+      }
+      return res.json();
+    })
+    .then((matches) => {
+      if (!Array.isArray(matches) || matches.length === 0) {
+        container.innerHTML = "<p>No match results found yet.</p>";
+        return;
+      }
 
-  // Example: get all events for a team for a season
-  const url = `https://theorangealliance.org/api/team/${teamNumber}/events/${season}-FIM`;
+      // Simple table output
+      const rows = matches
+        .map((m) => {
+          const eventName = m.event_key || m.event_name || "Event";
+          const matchKey = m.match_key || `${m.match_number || ""}`;
+          const alliance = m.alliance || m.team_color || "";
+          const result = m.result || m.winner || "";
+          const redScore = m.red_score ?? "";
+          const blueScore = m.blue_score ?? "";
 
-  try {
-    const response = await fetch(url, {
-      headers: {
-        accept: "application/json",
-        "X-TOA-Key": API_KEY,
-        "X-Application-Origin": APP_ORIGIN,
-      },
+          return `
+            <tr>
+              <td>${eventName}</td>
+              <td>${matchKey}</td>
+              <td>${alliance}</td>
+              <td>${result}</td>
+              <td>${redScore}</td>
+              <td>${blueScore}</td>
+            </tr>
+          `;
+        })
+        .join("");
+
+      container.innerHTML = `
+        <table style="width:100%;border-collapse:collapse;font-size:0.9rem;">
+          <thead>
+            <tr>
+              <th style="text-align:left;border-bottom:1px solid rgba(255,255,255,0.1);padding:0.4rem;">Event</th>
+              <th style="text-align:left;border-bottom:1px solid rgba(255,255,255,0.1);padding:0.4rem;">Match</th>
+              <th style="text-align:left;border-bottom:1px solid rgba(255,255,255,0.1);padding:0.4rem;">Alliance</th>
+              <th style="text-align:left;border-bottom:1px solid rgba(255,255,255,0.1);padding:0.4rem;">Result</th>
+              <th style="text-align:left;border-bottom:1px solid rgba(255,255,255,0.1);padding:0.4rem;">Red</th>
+              <th style="text-align:left;border-bottom:1px solid rgba(255,255,255,0.1);padding:0.4rem;">Blue</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows}
+          </tbody>
+        </table>
+      `;
+    })
+    .catch((err) => {
+      console.error("Match load error:", err);
+      container.innerHTML = `<p>Could not load match data.</p>`;
     });
-
-    if (!response.ok) {
-      const text = await response.text();
-      return {
-        statusCode: response.status,
-        body: JSON.stringify({
-          error: "TOA API error",
-          status: response.status,
-          body: text,
-        }),
-      };
-    }
-
-    const data = await response.json();
-
-    return {
-      statusCode: 200,
-      headers: {
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*",
-      },
-      body: JSON.stringify(data),
-    };
-  } catch (err) {
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: "Request failed", details: String(err) }),
-    };
-  }
-}
+});
