@@ -1010,26 +1010,80 @@
         </div>
       </div>
     </section>
- <!-- MATCH RESULTS -->
-<section id="matches">
-  <h2>Latest Match Results</h2>
-  <div id="match-results">Loading…</div>
+<!-- MATCH RESULTS -->
+<section id="matches" aria-labelledby="matchtitle">
+  <div class="container">
+    <div class="section-title">
+      <h2 id="matchtitle">Match Results</h2>
+      <span class="tag">Live data from The Orange Alliance</span>
+    </div>
+
+    <div class="card">
+      <h3>Latest Team Results • Robo Rhinos 11254</h3>
+
+      <!-- Match results will load here -->
+      <div id="toa-results">
+        <p class="muted">Loading match data…</p>
+      </div>
+    </div>
+  </div>
 </section>
 
 <script>
-fetch("/.netlify/functions/get-matches")
-  .then(r => r.json())
-  .then(data => {
-    document.getElementById("match-results").innerHTML =
-      `<pre>${JSON.stringify(data, null, 2)}</pre>`;
-  })
-  .catch(() => {
-    document.getElementById("match-results").innerHTML =
-      "⚠️ Could not load match data.";
-  });
+  async function loadTOAMatches() {
+    const container = document.getElementById("toa-results");
+
+    try {
+      const response = await fetch("/.netlify/functions/getToaMatches");
+
+      if (!response.ok) {
+        container.innerHTML = `
+          <p style="color:#f55">
+            ⚠️ Could not load match data (HTTP ${response.status}).<br>
+            Check your Netlify function logs.
+          </p>`;
+        return;
+      }
+
+      const data = await response.json();
+
+      if (!data || !data.matches || data.matches.length === 0) {
+        container.innerHTML = `<p class="muted">No match data found for Team 11254.</p>`;
+        return;
+      }
+
+      // Build results HTML
+      let html = `<ul style="list-style:none;padding:0;display:grid;gap:1rem">`;
+
+      data.matches.forEach(m => {
+        html += `
+          <li style="border:1px solid #444;padding:1rem;border-radius:10px;background:#2d2f33">
+            <strong>Event:</strong> ${m.event_key}<br>
+            <strong>Match:</strong> ${m.match_key}<br>
+            <strong>Result:</strong> ${m.alliance} alliance — 
+              <span style="color:${m.result === "win" ? "#07f134" : "#f55"}">
+                ${m.result.toUpperCase()}
+              </span><br>
+            <strong>Score:</strong> ${m.score}
+          </li>
+        `;
+      });
+
+      html += `</ul>`;
+      container.innerHTML = html;
+
+    } catch (err) {
+      console.error(err);
+      container.innerHTML = `
+        <p style="color:#f55">
+          ⚠️ Could not load match data.<br>
+          Check console + Netlify logs.
+        </p>`;
+    }
+  }
+
+  loadTOAMatches();
 </script>
-<!-- Load the data fetch script -->
-<script src="toa-matches.js"></script>
     <!-- AWARDS -->
     <section id="awards" aria-labelledby="awardstitle">
       <div class="container">
