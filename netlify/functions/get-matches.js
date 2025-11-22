@@ -1,26 +1,30 @@
-import fetch from "node-fetch";
+// netlify/functions/toa-matches.js
 
-export async function handler(event, context) {
+// Netlify's Node runtime already includes global `fetch`,
+// so we don't need to import node-fetch here.
+
+exports.handler = async (event, context) => {
   const API_KEY = process.env.TOA_API_KEY;
 
   if (!API_KEY) {
     return {
       statusCode: 500,
       body: JSON.stringify({
-        error: "Missing TOA_API_KEY environment variable"
-      })
+        error: "Missing TOA_API_KEY environment variable",
+      }),
     };
   }
 
   try {
+    // All matches for team 11254
     const url = "https://theorangealliance.org/api/team/11254/matches";
 
     const response = await fetch(url, {
       headers: {
-        "accept": "application/json",
+        accept: "application/json",
         "X-TOA-Key": API_KEY,
-        "X-Application-Origin": "RoboRhinosWebsite"
-      }
+        "X-Application-Origin": "RoboRhinosWebsite",
+      },
     });
 
     if (!response.ok) {
@@ -31,13 +35,12 @@ export async function handler(event, context) {
 
     return {
       statusCode: 200,
-      body: JSON.stringify(matches)
+      body: JSON.stringify(matches),
     };
-
   } catch (err) {
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: err.message })
+      body: JSON.stringify({ error: err.message }),
     };
   }
-}
+};
