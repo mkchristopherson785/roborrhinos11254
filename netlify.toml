@@ -1,0 +1,5 @@
+[build]
+  publish = "."          # where index.html lives
+
+[functions]
+  directory = "netlify/functions"
