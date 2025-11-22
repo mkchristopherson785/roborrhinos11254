@@ -6,7 +6,9 @@ export async function handler(event, context) {
   if (!API_KEY) {
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: "Missing TOA_API_KEY environment variable" })
+      body: JSON.stringify({
+        error: "Missing TOA_API_KEY environment variable"
+      })
     };
   }
 
@@ -31,6 +33,7 @@ export async function handler(event, context) {
       statusCode: 200,
       body: JSON.stringify(matches)
     };
+
   } catch (err) {
     return {
       statusCode: 500,
