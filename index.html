@@ -1030,12 +1030,19 @@ async function loadMatchResults() {
 
   try {
     const res = await fetch("/.netlify/functions/get-matches");
-    if (!res.ok) throw new Error("Bad response: " + res.status);
+    if (!res.ok) {
+      const txt = await res.text().catch(() => "");
+      console.error("Function HTTP error:", res.status, txt);
+      throw new Error("Netlify function returned " + res.status);
+    }
 
     const data = await res.json();
-    const matches = Array.isArray(data) ? data : (data.matches || []);
+    console.log("TOA data:", data);
 
-    if (!matches.length) {
+    // Data might be { matches: [...] } or just [...]
+    const matches = Array.isArray(data) ? data : data.matches;
+
+    if (!matches || !Array.isArray(matches) || matches.length === 0) {
       container.innerHTML = `
         <p class="muted">No match results available yet for Team 11254.</p>
       `;
@@ -1049,13 +1056,16 @@ async function loadMatchResults() {
     `;
 
     matches.forEach(m => {
-      const eventName = m.event_name || m.event_key || "Unknown Event";
-      const level = m.tournament_level || "";
-      const redScore = m.red_score ?? "-";
-      const blueScore = m.blue_score ?? "-";
-      let result = "Tie";
-      if (redScore > blueScore) result = "Red Wins";
-      else if (blueScore > redScore) result = "Blue Wins";
+      // TOA fields may differ; use safe fallbacks
+      const matchKey = m.match_key || m.matchKey || "Unknown Match";
+      const eventName = m.event_name || m.eventName || "Unknown Event";
+      const level = m.tournament_level || m.tournamentLevel || "";
+      const redScore = m.red_score ?? m.redScore ?? "?";
+      const blueScore = m.blue_score ?? m.blueScore ?? "?";
+
+      let resultText = "Tie";
+      if (redScore > blueScore) resultText = "Red Wins";
+      else if (blueScore > redScore) resultText = "Blue Wins";
 
       html += `
         <div style="
@@ -1064,12 +1074,12 @@ async function loadMatchResults() {
           border-radius:12px;
           background:#2d2f33;
         ">
-          <strong>Match ${m.match_key || ""}</strong><br>
-          <span class="muted">${eventName}${level ? " – " + level : ""}</span>
+          <strong>Match ${matchKey}</strong><br>
+          <span class="muted">${eventName} ${level ? "– " + level : ""}</span>
           <br><br>
           <div><strong>Red Alliance:</strong> ${redScore}</div>
           <div><strong>Blue Alliance:</strong> ${blueScore}</div>
-          <div><strong>Result:</strong> ${result}</div>
+          <div><strong>Result:</strong> ${resultText}</div>
         </div>
       `;
     });
@@ -1078,11 +1088,11 @@ async function loadMatchResults() {
     container.innerHTML = html;
 
   } catch (err) {
-    console.error(err);
+    console.error("loadMatchResults error:", err);
     container.innerHTML = `
       <p style="color:#ff6b6b;">
         ⚠️ Could not load match data.<br>
-        Make sure your Netlify Function <strong>get-matches</strong> is deployed and working.
+        <span class="muted">Check the Netlify Function <strong>get-matches</strong> and TOA_API_KEY.</span>
       </p>
     `;
   }
