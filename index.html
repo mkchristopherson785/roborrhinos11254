@@ -1014,75 +1014,72 @@
 <section id="matches" aria-labelledby="matchtitle">
   <div class="container">
     <div class="section-title">
-      <h2 id="matchtitle">Match Results</h2>
-      <span class="tag">Live data from The Orange Alliance</span>
+      <h2 id="matchtitle">Latest Match Results</h2>
+      <span class="tag">Powered by The Orange Alliance</span>
     </div>
 
-    <div class="card">
-      <h3>Latest Team Results • Robo Rhinos 11254</h3>
-
-      <!-- Match results will load here -->
-      <div id="toa-results">
-        <p class="muted">Loading match data…</p>
-      </div>
+    <div id="match-results" class="card" style="padding:1.5rem;">
+      <p class="muted">Loading match results…</p>
     </div>
   </div>
 </section>
 
 <script>
-  async function loadTOAMatches() {
-    const container = document.getElementById("toa-results");
+async function loadMatchResults() {
+  const container = document.getElementById("match-results");
 
-    try {
-      const response = await fetch("/.netlify/functions/getToaMatches");
+  try {
+    const res = await fetch("/.netlify/functions/get-matches"); 
+    if (!res.ok) throw new Error("Bad response");
 
-      if (!response.ok) {
-        container.innerHTML = `
-          <p style="color:#f55">
-            ⚠️ Could not load match data (HTTP ${response.status}).<br>
-            Check your Netlify function logs.
-          </p>`;
-        return;
-      }
+    const data = await res.json();
 
-      const data = await response.json();
-
-      if (!data || !data.matches || data.matches.length === 0) {
-        container.innerHTML = `<p class="muted">No match data found for Team 11254.</p>`;
-        return;
-      }
-
-      // Build results HTML
-      let html = `<ul style="list-style:none;padding:0;display:grid;gap:1rem">`;
-
-      data.matches.forEach(m => {
-        html += `
-          <li style="border:1px solid #444;padding:1rem;border-radius:10px;background:#2d2f33">
-            <strong>Event:</strong> ${m.event_key}<br>
-            <strong>Match:</strong> ${m.match_key}<br>
-            <strong>Result:</strong> ${m.alliance} alliance — 
-              <span style="color:${m.result === "win" ? "#07f134" : "#f55"}">
-                ${m.result.toUpperCase()}
-              </span><br>
-            <strong>Score:</strong> ${m.score}
-          </li>
-        `;
-      });
-
-      html += `</ul>`;
-      container.innerHTML = html;
-
-    } catch (err) {
-      console.error(err);
+    if (!data || !Array.isArray(data.matches) || data.matches.length === 0) {
       container.innerHTML = `
-        <p style="color:#f55">
-          ⚠️ Could not load match data.<br>
-          Check console + Netlify logs.
-        </p>`;
+        <p class="muted">No match results available yet for Team 11254.</p>
+      `;
+      return;
     }
-  }
 
-  loadTOAMatches();
+    let html = `
+      <h3>Robo Rhinos • Team 11254</h3>
+      <p class="muted">Latest match results pulled live from The Orange Alliance.</p>
+      <div style="margin-top:1rem;display:grid;gap:.7rem;">
+    `;
+
+    data.matches.forEach(m => {
+      html += `
+        <div style="
+          padding:1rem;
+          border:1px solid rgba(255,255,255,0.15);
+          border-radius:12px;
+          background:#2d2f33;
+        ">
+          <strong>Match ${m.match_key}</strong><br>
+          <span class="muted">${m.event_name || "Unknown Event"} – ${m.tournament_level}</span>
+          <br><br>
+          <div><strong>Red Alliance:</strong> ${m.red_score}</div>
+          <div><strong>Blue Alliance:</strong> ${m.blue_score}</div>
+          <div><strong>Result:</strong> ${m.red_score > m.blue_score ? "Red Wins" : m.blue_score > m.red_score ? "Blue Wins" : "Tie"}</div>
+        </div>
+      `;
+    });
+
+    html += "</div>";
+    container.innerHTML = html;
+
+  } catch (err) {
+    console.error(err);
+    container.innerHTML = `
+      <p style="color:#ff6b6b;">
+        ⚠️ Could not load match data.<br>
+        Make sure your Netlify Function <strong>get-matches</strong> is deployed and working.
+      </p>
+    `;
+  }
+}
+
+loadMatchResults();
 </script>
     <!-- AWARDS -->
     <section id="awards" aria-labelledby="awardstitle">
