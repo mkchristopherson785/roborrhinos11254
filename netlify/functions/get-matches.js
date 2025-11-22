@@ -1,14 +1,15 @@
 // netlify/functions/get-matches.js
 
-// Netlify Functions (Node 18+) have global fetch built-in
-exports.handler = async function (event, context) {
+export async function handler(event, context) {
   const API_KEY = process.env.TOA_API_KEY;
 
   if (!API_KEY) {
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: "Missing TOA_API_KEY environment variable" }),
-      headers: { "Content-Type": "application/json" }
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        error: "Missing TOA_API_KEY environment variable",
+      }),
     };
   }
 
@@ -17,28 +18,29 @@ exports.handler = async function (event, context) {
 
     const response = await fetch(url, {
       headers: {
-        "accept": "application/json",
+        accept: "application/json",
         "X-TOA-Key": API_KEY,
-        "X-Application-Origin": "RoboRhinosWebsite"
-      }
+        "X-Application-Origin": "RoboRhinosWebsite",
+      },
     });
 
     if (!response.ok) {
       throw new Error(`TOA error: ${response.status} ${response.statusText}`);
     }
 
-    const matches = await response.json();
+    const matches = await response.json(); // TOA returns an array
 
     return {
       statusCode: 200,
-      body: JSON.stringify(matches),
-      headers: { "Content-Type": "application/json" }
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ matches }), // wrap in object so data.matches works
     };
   } catch (err) {
+    console.error("get-matches error:", err);
     return {
       statusCode: 500,
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ error: err.message }),
-      headers: { "Content-Type": "application/json" }
     };
   }
-};
+}
