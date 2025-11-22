@@ -1,5 +1,3 @@
-// netlify/functions/get-matches.js
-
 import fetch from "node-fetch";
 
 export async function handler(event, context) {
@@ -8,26 +6,31 @@ export async function handler(event, context) {
   if (!API_KEY) {
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: "Missing TOA_API_KEY environment variable." })
+      body: JSON.stringify({ error: "Missing TOA_API_KEY environment variable" })
     };
   }
 
   try {
-    const res = await fetch("https://theorangealliance.org/api/team/11254/matches", {
+    const url = "https://theorangealliance.org/api/team/11254/matches";
+
+    const response = await fetch(url, {
       headers: {
-        "Content-Type": "application/json",
+        "accept": "application/json",
         "X-TOA-Key": API_KEY,
-        "X-Application-Origin": "Robo-Rhinos-Website"
+        "X-Application-Origin": "RoboRhinosWebsite"
       }
     });
 
-    const data = await res.json();
+    if (!response.ok) {
+      throw new Error(`TOA error: ${response.status} ${response.statusText}`);
+    }
+
+    const matches = await response.json();
 
     return {
       statusCode: 200,
-      body: JSON.stringify(data)
+      body: JSON.stringify(matches)
     };
-
   } catch (err) {
     return {
       statusCode: 500,
