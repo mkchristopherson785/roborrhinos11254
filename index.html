@@ -1029,12 +1029,13 @@ async function loadMatchResults() {
   const container = document.getElementById("match-results");
 
   try {
-    const res = await fetch("/.netlify/functions/get-matches"); 
-    if (!res.ok) throw new Error("Bad response");
+    const res = await fetch("/.netlify/functions/get-matches");
+    if (!res.ok) throw new Error("Bad response: " + res.status);
 
     const data = await res.json();
+    const matches = Array.isArray(data) ? data : (data.matches || []);
 
-    if (!data || !Array.isArray(data.matches) || data.matches.length === 0) {
+    if (!matches.length) {
       container.innerHTML = `
         <p class="muted">No match results available yet for Team 11254.</p>
       `;
@@ -1047,7 +1048,15 @@ async function loadMatchResults() {
       <div style="margin-top:1rem;display:grid;gap:.7rem;">
     `;
 
-    data.matches.forEach(m => {
+    matches.forEach(m => {
+      const eventName = m.event_name || m.event_key || "Unknown Event";
+      const level = m.tournament_level || "";
+      const redScore = m.red_score ?? "-";
+      const blueScore = m.blue_score ?? "-";
+      let result = "Tie";
+      if (redScore > blueScore) result = "Red Wins";
+      else if (blueScore > redScore) result = "Blue Wins";
+
       html += `
         <div style="
           padding:1rem;
@@ -1055,12 +1064,12 @@ async function loadMatchResults() {
           border-radius:12px;
           background:#2d2f33;
         ">
-          <strong>Match ${m.match_key}</strong><br>
-          <span class="muted">${m.event_name || "Unknown Event"} – ${m.tournament_level}</span>
+          <strong>Match ${m.match_key || ""}</strong><br>
+          <span class="muted">${eventName}${level ? " – " + level : ""}</span>
           <br><br>
-          <div><strong>Red Alliance:</strong> ${m.red_score}</div>
-          <div><strong>Blue Alliance:</strong> ${m.blue_score}</div>
-          <div><strong>Result:</strong> ${m.red_score > m.blue_score ? "Red Wins" : m.blue_score > m.red_score ? "Blue Wins" : "Tie"}</div>
+          <div><strong>Red Alliance:</strong> ${redScore}</div>
+          <div><strong>Blue Alliance:</strong> ${blueScore}</div>
+          <div><strong>Result:</strong> ${result}</div>
         </div>
       `;
     });
