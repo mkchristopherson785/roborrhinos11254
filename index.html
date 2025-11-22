@@ -1011,24 +1011,23 @@
       </div>
     </section>
  <!-- MATCH RESULTS -->
-<section id="results" aria-labelledby="resultstitle">
-  <div class="container">
-    <div class="section-title">
-      <h2 id="resultstitle">Match Results</h2>
-      <span class="tag">Live FTC Data from The Orange Alliance</span>
-    </div>
-
-    <div class="card">
-      <p class="muted">Latest match results for Robo Rhinos • Team 11254.</p>
-
-      <!-- Where match data will appear -->
-      <div id="toa-results" style="margin-top:1.5rem;">
-        <p class="muted">Loading match results…</p>
-      </div>
-    </div>
-  </div>
+<section id="matches">
+  <h2>Latest Match Results</h2>
+  <div id="match-results">Loading…</div>
 </section>
 
+<script>
+fetch("/.netlify/functions/get-matches")
+  .then(r => r.json())
+  .then(data => {
+    document.getElementById("match-results").innerHTML =
+      `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+  })
+  .catch(() => {
+    document.getElementById("match-results").innerHTML =
+      "⚠️ Could not load match data.";
+  });
+</script>
 <!-- Load the data fetch script -->
 <script src="toa-matches.js"></script>
     <!-- AWARDS -->
