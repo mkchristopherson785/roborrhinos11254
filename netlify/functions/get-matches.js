@@ -22,8 +22,8 @@ export async function handler(event, context) {
     });
 
     if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`TOA error: ${response.status} ${response.statusText} ${errText}`);
+      const text = await response.text();
+      throw new Error(`TOA error: ${response.status} ${response.statusText} ${text}`);
     }
 
     const matches = await response.json();
