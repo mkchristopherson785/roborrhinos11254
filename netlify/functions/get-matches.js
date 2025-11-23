@@ -11,7 +11,7 @@ export async function handler(event, context) {
   }
 
   try {
-    const url = "https://theorangealliance.org/api/team/11254/matches";
+    const url = "https://theorangealliance.org/api/team/ftc11254/matches";
 
     const response = await fetch(url, {
       headers: {
