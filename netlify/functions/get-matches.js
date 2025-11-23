@@ -1,4 +1,4 @@
-// netlify/functions/get-matches.js
+import fetch from "node-fetch";
 
 export async function handler(event, context) {
   const API_KEY = process.env.TOA_API_KEY;
@@ -6,15 +6,11 @@ export async function handler(event, context) {
   if (!API_KEY) {
     return {
       statusCode: 500,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        error: "Missing TOA_API_KEY environment variable on Netlify"
-      })
+      body: JSON.stringify({ error: "Missing TOA_API_KEY environment variable" })
     };
   }
 
   try {
-    // All matches for Team 11254
     const url = "https://theorangealliance.org/api/team/11254/matches";
 
     const response = await fetch(url, {
@@ -26,24 +22,20 @@ export async function handler(event, context) {
     });
 
     if (!response.ok) {
-      const text = await response.text().catch(() => "");
-      throw new Error(`TOA error: ${response.status} ${response.statusText} ${text}`);
+      const msg = await response.text();
+      throw new Error(`TOA error: ${response.status} ${response.statusText} ${msg}`);
     }
 
     const matches = await response.json();
 
-    // Wrap in an object so the front-end can use data.matches
     return {
       statusCode: 200,
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ matches })
     };
   } catch (err) {
-    console.error("get-matches error:", err);
     return {
       statusCode: 500,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ error: err.message || "Unknown error" })
+      body: JSON.stringify({ error: err.message })
     };
   }
 }
