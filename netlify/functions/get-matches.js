@@ -1,4 +1,11 @@
+// netlify/functions/get-matches.js
 import fetch from "node-fetch";
+
+// Simple in-memory cache for this function instance
+let cache = {
+  timestamp: 0,
+  data: null
+};
 
 export async function handler(event, context) {
   const API_KEY = process.env.TOA_API_KEY;
@@ -12,100 +19,60 @@ export async function handler(event, context) {
     };
   }
 
-  // Update to your current event when needed
-  const EVENT_KEY = "2526-FIM-NOQ";
+  // 60-second cache to avoid hammering TOA
+  const now = Date.now();
+  const CACHE_MS = 60 * 1000;
 
-  const HEADERS = {
-    accept: "application/json",
-    "X-TOA-Key": API_KEY,
-    "X-Application-Origin": "RoboRhinosWebsite"
-  };
+  if (cache.data && now - cache.timestamp < CACHE_MS) {
+    return {
+      statusCode: 200,
+      body: JSON.stringify(cache.data)
+    };
+  }
 
   try {
-    // 1) Get all matches for the event
-    const matchesRes = await fetch(
-      `https://theorangealliance.org/api/event/${EVENT_KEY}/matches`,
-      { headers: HEADERS }
-    );
+    // Current event key (this is the one that worked for you)
+    const EVENT_KEY = "2526-FIM-NOQ";
 
-    if (!matchesRes.ok) {
-      const text = await matchesRes.text();
+    const url = `https://theorangealliance.org/api/event/${EVENT_KEY}/matches`;
+
+    const response = await fetch(url, {
+      headers: {
+        accept: "application/json",
+        "X-TOA-Key": API_KEY,
+        "X-Application-Origin": "RoboRhinosWebsite"
+      }
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
       return {
-        statusCode: matchesRes.status,
+        statusCode: response.status,
         body: JSON.stringify({
           error: "TOA matches error",
-          status: matchesRes.status,
+          status: response.status,
           body: text
         })
       };
     }
 
-    const rawMatches = await matchesRes.json();
+    const matches = await response.json();
 
-    // 2) For each match, try to load participants (teams)
-    const enrichedMatches = await Promise.all(
-      rawMatches.map(async (m) => {
-        let redTeams = [];
-        let blueTeams = [];
+    const payload = {
+      event_key: EVENT_KEY,
+      matches,
+      generated_at: new Date().toISOString()
+    };
 
-        try {
-          const partRes = await fetch(
-            `https://theorangealliance.org/api/match/${m.match_key}/participants`,
-            { headers: HEADERS }
-          );
-
-          if (partRes.ok) {
-            const participants = await partRes.json();
-
-            // station 11/12/13 = Red, 21/22/23 = Blue
-            redTeams = participants
-              .filter((p) => p.station === 11 || p.station === 12 || p.station === 13)
-              .map((p) => ({
-                team_key: p.team_key,
-                team_number: p.team?.team_number ?? null,
-                team_name_short: p.team?.team_name_short ?? null
-              }));
-
-            blueTeams = participants
-              .filter((p) => p.station === 21 || p.station === 22 || p.station === 23)
-              .map((p) => ({
-                team_key: p.team_key,
-                team_number: p.team?.team_number ?? null,
-                team_name_short: p.team?.team_name_short ?? null
-              }));
-          }
-        } catch (err) {
-          // If participants fail, we still return the match with empty team lists
-          console.error("Participant fetch error for match", m.match_key, err);
-        }
-
-        return {
-          match_key: m.match_key,
-          match_name: m.match_name || m.match_key,
-          tournament_level: m.tournament_level,
-          match_number: m.match_number,
-          scheduled_time: m.start_time ?? m.scheduled_time ?? null,
-          red_score: m.red_score,
-          blue_score: m.blue_score,
-          red_teams,
-          blue_teams
-        };
-      })
-    );
-
-    // Sort newest → oldest by match_number (fallback to key)
-    enrichedMatches.sort((a, b) => {
-      const aNum = a.match_number ?? 0;
-      const bNum = b.match_number ?? 0;
-      return bNum - aNum;
-    });
+    // Save to cache
+    cache = {
+      timestamp: now,
+      data: payload
+    };
 
     return {
       statusCode: 200,
-      body: JSON.stringify({
-        matches: enrichedMatches,
-        generated_at: new Date().toISOString()
-      })
+      body: JSON.stringify(payload)
     };
   } catch (err) {
     return {
