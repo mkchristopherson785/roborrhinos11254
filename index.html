@@ -1033,37 +1033,78 @@ async function loadMatchResults() {
     if (!res.ok) throw new Error("Bad response");
 
     const data = await res.json();
+    const matches = Array.isArray(data.matches) ? data.matches : [];
 
-    if (!data || !Array.isArray(data.matches) || data.matches.length === 0) {
+    if (!matches.length) {
       container.innerHTML = `
         <p class="muted">No match results available yet for Team 11254.</p>
       `;
       return;
     }
 
-    // Format timestamp (fallback if missing)
-    let lastUpdatedText = "";
-    if (data.fetched_at) {
-      const dt = new Date(data.fetched_at);
-      const formatted = dt.toLocaleString("en-US", {
-        timeZone: "America/Detroit",
+    // Format "Last updated" if the function returns generated_at
+    let updatedText = "";
+    if (data.generated_at) {
+      const d = new Date(data.generated_at);
+      const formatted = d.toLocaleString("en-US", {
         month: "short",
         day: "numeric",
         year: "numeric",
         hour: "numeric",
         minute: "2-digit"
       });
-      lastUpdatedText = `<p class="muted" style="margin-top:.3rem;font-size:.85rem;">Last updated: ${formatted}</p>`;
+      updatedText = `<p class="muted" style="margin-top:.3rem;">Last updated: ${formatted}</p>`;
     }
 
     let html = `
       <h3>Robo Rhinos • Team 11254</h3>
       <p class="muted">Latest match results pulled live from The Orange Alliance.</p>
-      ${lastUpdatedText}
+      ${updatedText}
       <div style="margin-top:1rem;display:grid;gap:.7rem;">
     `;
 
-    data.matches.forEach(m => {
+    matches.forEach(m => {
+      // Try multiple possible shapes for alliance teams
+      let redTeams = [];
+      let blueTeams = [];
+
+      if (m.alliances && m.alliances.red && m.alliances.blue) {
+        // alliances.red = ["ftc11254", "ftc12345"]
+        redTeams = m.alliances.red;
+        blueTeams = m.alliances.blue;
+      } else if (Array.isArray(m.red_teams) && Array.isArray(m.blue_teams)) {
+        // red_teams = ["ftc11254", "ftc12345"]
+        redTeams = m.red_teams;
+        blueTeams = m.blue_teams;
+      } else if (Array.isArray(m.participants)) {
+        // participants array with station & team_key
+        m.participants.forEach(p => {
+          if (!p.team_key) return;
+          if (p.station && String(p.station).toLowerCase().startsWith("r")) {
+            redTeams.push(p.team_key);
+          } else if (p.station && String(p.station).toLowerCase().startsWith("b")) {
+            blueTeams.push(p.team_key);
+          }
+        });
+      }
+
+      // Clean up team labels (e.g., "ftc11254" -> "11254")
+      const cleanTeam = key =>
+        key ? key.replace(/^ftc/i, "") : "";
+
+      const redLabel = redTeams.map(cleanTeam).join(", ") || "TBD";
+      const blueLabel = blueTeams.map(cleanTeam).join(", ") || "TBD";
+
+      const eventName = m.event_name || m.eventKey || "Unknown Event";
+      const level = m.tournament_level || m.level || "";
+
+      const result =
+        m.red_score > m.blue_score
+          ? "Red Wins"
+          : m.blue_score > m.red_score
+          ? "Blue Wins"
+          : "Tie";
+
       html += `
         <div style="
           padding:1rem;
@@ -1071,20 +1112,16 @@ async function loadMatchResults() {
           border-radius:12px;
           background:#2d2f33;
         ">
-          <strong>Match ${m.match_key}</strong><br>
-          <span class="muted">
-            ${m.event_name || "Unknown Event"} – ${m.tournament_level || ""}
-          </span>
+          <strong>${eventName}</strong>
+          ${level ? `<span class="muted"> • ${level}</span>` : ""}
+          <br>
+          <span class="muted">${m.match_key || ""}</span>
           <br><br>
-          <div><strong>Red Alliance:</strong> ${m.red_score}</div>
-          <div><strong>Blue Alliance:</strong> ${m.blue_score}</div>
-          <div><strong>Result:</strong> ${
-            m.red_score > m.blue_score
-              ? "Red Wins"
-              : m.blue_score > m.red_score
-              ? "Blue Wins"
-              : "Tie"
-          }</div>
+          <div><strong>Red Alliance:</strong> ${redLabel} — <strong>${m.red_score}</strong></div>
+          <div><strong>Blue Alliance:</strong> ${blueLabel} — <strong>${m.blue_score}</strong></div>
+          <div style="margin-top:.4rem;">
+            <strong>Result:</strong> ${result}
+          </div>
         </div>
       `;
     });
@@ -1097,7 +1134,7 @@ async function loadMatchResults() {
     container.innerHTML = `
       <p style="color:#ff6b6b;">
         ⚠️ Could not load match data.<br>
-        Check the Netlify Function <strong>get-matches</strong> and <code>TOA_API_KEY</code>.
+        Check the Netlify Function <strong>get-matches</strong> and <strong>TOA_API_KEY</strong>.
       </p>
     `;
   }
