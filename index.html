@@ -1010,129 +1010,102 @@
         </div>
       </div>
     </section>
-import fetch from "node-fetch";
-
-export async function handler(event, context) {
-  const API_KEY = process.env.TOA_API_KEY;
-
-  if (!API_KEY) {
-    return {
-      statusCode: 500,
-      body: JSON.stringify({
-        error: "Missing TOA_API_KEY environment variable"
-      })
-    };
-  }
-
-  // 🔧 UPDATE THIS when you move to a new event
-  const EVENT_KEY = "2526-FIM-NOQ";
-
-  const baseHeaders = {
-    accept: "application/json",
-    "X-TOA-Key": API_KEY,
-    "X-Application-Origin": "RoboRhinosWebsite"
-  };
+<script>
+async function loadMatchResults() {
+  const container = document.getElementById("match-results");
 
   try {
-    // 1) Get all matches for this event
-    const matchesRes = await fetch(
-      `https://theorangealliance.org/api/event/${EVENT_KEY}/matches`,
-      { headers: baseHeaders }
-    );
+    const res = await fetch("/.netlify/functions/get-matches");
+    const data = await res.json();
 
-    if (!matchesRes.ok) {
-      const text = await matchesRes.text();
-      return {
-        statusCode: matchesRes.status,
-        body: JSON.stringify({
-          error: "TOA matches error",
-          status: matchesRes.status,
-          body: text
-        })
-      };
+    if (!res.ok) {
+      console.error("Function error:", data);
+      container.innerHTML = `
+        <p style="color:#ff6b6b;">
+          ⚠️ Could not load match data.<br>
+          Check the Netlify Function <strong>get-matches</strong> and TOA_API_KEY.
+        </p>
+      `;
+      return;
     }
 
-    const allMatches = await matchesRes.json();
-
-    // ➜ Keep this small to avoid hitting rate limits:
-    //    sort newest first, then take top 5
-    const matches = allMatches
-      .slice() // copy
-      .sort((a, b) => {
-        // Fall back to match_key if no scheduled time
-        const ta = a.scheduled_time || a.match_key;
-        const tb = b.scheduled_time || b.match_key;
-        return (tb || "").localeCompare(ta || "");
-      })
-      .slice(0, 5);
-
-    // 2) Helper to get participants for ONE match
-    async function fetchParticipantsForMatch(matchKey) {
-      const url = `https://theorangealliance.org/api/match/${matchKey}/participants`;
-      const res = await fetch(url, { headers: baseHeaders });
-
-      if (!res.ok) {
-        // Don't blow up the whole request; just return empty
-        return { red: [], blue: [] };
-      }
-
-      const participants = await res.json();
-
-      const red = [];
-      const blue = [];
-
-      // Example from your JSON:
-      // station 11, 12 = Red alliance teams
-      // station 21, 22 = Blue alliance teams
-      participants.forEach(p => {
-        if (!p.team) return;
-        const label = `${p.team.team_number} ${p.team.team_name_short}`;
-        if (p.station === 11 || p.station === 12) {
-          red.push(label);
-        } else if (p.station === 21 || p.station === 22) {
-          blue.push(label);
-        }
-      });
-
-      return { red, blue };
+    if (!data || !Array.isArray(data.matches) || data.matches.length === 0) {
+      container.innerHTML = `
+        <p class="muted">No match results available yet for Team 11254.</p>
+      `;
+      return;
     }
 
-    // 3) Enrich matches with alliance team info (with rate-limit safety)
-    const enriched = [];
-    for (const m of matches) {
-      let alliances = { red: [], blue: [] };
+    const ts = data.generated_at
+      ? new Date(data.generated_at).toLocaleString()
+      : "";
 
-      try {
-        alliances = await fetchParticipantsForMatch(m.match_key);
-      } catch (e) {
-        // If TOA rate-limits or errors, just leave alliances empty
-        alliances = { red: [], blue: [] };
-      }
+    let html = `
+      <h3>Robo Rhinos • Team 11254</h3>
+      <p class="muted">
+        Latest match results pulled live from The Orange Alliance.
+        ${ts ? `<br><small>Last updated: ${ts}</small>` : ""}
+      </p>
+      <div style="margin-top:1rem;display:grid;gap:.7rem;">
+    `;
 
-      enriched.push({
-        ...m,
-        red_alliance: alliances.red,
-        blue_alliance: alliances.blue
-      });
-    }
+    data.matches.forEach((m) => {
+      const redTeams = (m.red_alliance && m.red_alliance.length)
+        ? m.red_alliance.join(", ")
+        : "TBD";
 
-    // 4) Return matches + timestamp
-    return {
-      statusCode: 200,
-      body: JSON.stringify({
-        matches: enriched,
-        generated_at: new Date().toISOString()
-      })
-    };
+      const blueTeams = (m.blue_alliance && m.blue_alliance.length)
+        ? m.blue_alliance.join(", ")
+        : "TBD";
+
+      const redScore = m.red_score ?? "–";
+      const blueScore = m.blue_score ?? "–";
+
+      const result =
+        redScore === "–" || blueScore === "–"
+          ? "Not played yet"
+          : redScore > blueScore
+          ? "Red Wins"
+          : blueScore > redScore
+          ? "Blue Wins"
+          : "Tie";
+
+      html += `
+        <div style="
+          padding:1rem;
+          border:1px solid rgba(255,255,255,0.15);
+          border-radius:12px;
+          background:#2d2f33;
+        ">
+          <strong>${m.match_key}</strong><br>
+          <span class="muted">
+            ${m.event_name || "Event"} – ${m.tournament_level || ""}
+          </span>
+          <br><br>
+          <div><strong>Red Alliance:</strong> ${redTeams} (${redScore})</div>
+          <div><strong>Blue Alliance:</strong> ${blueTeams} (${blueScore})</div>
+          <div style="margin-top:.4rem;">
+            <strong>Result:</strong> ${result}
+          </div>
+        </div>
+      `;
+    });
+
+    html += "</div>";
+    container.innerHTML = html;
   } catch (err) {
-    return {
-      statusCode: 500,
-      body: JSON.stringify({
-        error: err.message || "Unknown error"
-      })
-    };
+    console.error(err);
+    container.innerHTML = `
+      <p style="color:#ff6b6b;">
+        ⚠️ Could not load match data.<br>
+        Check the Netlify Function <strong>get-matches</strong> and TOA_API_KEY.
+      </p>
+    `;
   }
 }
+
+loadMatchResults();
+</script>
     <!-- AWARDS -->
     <section id="awards" aria-labelledby="awardstitle">
       <div class="container">
