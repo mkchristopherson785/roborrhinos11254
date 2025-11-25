@@ -1,11 +1,4 @@
-// netlify/functions/get-matches.js
 import fetch from "node-fetch";
-
-// Simple in-memory cache for this function instance
-let cache = {
-  timestamp: 0,
-  data: null
-};
 
 export async function handler(event, context) {
   const API_KEY = process.env.TOA_API_KEY;
@@ -19,60 +12,105 @@ export async function handler(event, context) {
     };
   }
 
-  // 60-second cache to avoid hammering TOA
-  const now = Date.now();
-  const CACHE_MS = 60 * 1000;
+  // 🔧 UPDATE THIS when you move to a new event
+  const EVENT_KEY = "2526-FIM-NOQ";
 
-  if (cache.data && now - cache.timestamp < CACHE_MS) {
-    return {
-      statusCode: 200,
-      body: JSON.stringify(cache.data)
-    };
-  }
+  const baseHeaders = {
+    accept: "application/json",
+    "X-TOA-Key": API_KEY,
+    "X-Application-Origin": "RoboRhinosWebsite"
+  };
 
   try {
-    // Current event key (this is the one that worked for you)
-    const EVENT_KEY = "2526-FIM-NOQ";
+    // 1) Get all matches for this event
+    const matchesRes = await fetch(
+      `https://theorangealliance.org/api/event/${EVENT_KEY}/matches`,
+      { headers: baseHeaders }
+    );
 
-    const url = `https://theorangealliance.org/api/event/${EVENT_KEY}/matches`;
-
-    const response = await fetch(url, {
-      headers: {
-        accept: "application/json",
-        "X-TOA-Key": API_KEY,
-        "X-Application-Origin": "RoboRhinosWebsite"
-      }
-    });
-
-    if (!response.ok) {
-      const text = await response.text();
+    if (!matchesRes.ok) {
+      const text = await matchesRes.text();
       return {
-        statusCode: response.status,
+        statusCode: matchesRes.status,
         body: JSON.stringify({
           error: "TOA matches error",
-          status: response.status,
+          status: matchesRes.status,
           body: text
         })
       };
     }
 
-    const matches = await response.json();
+    const allMatches = await matchesRes.json();
 
-    const payload = {
-      event_key: EVENT_KEY,
-      matches,
-      generated_at: new Date().toISOString()
-    };
+    // ➜ Keep this small to avoid hitting rate limits:
+    //    sort newest first, then take top 5
+    const matches = allMatches
+      .slice() // copy
+      .sort((a, b) => {
+        // Fall back to match_key if no scheduled time
+        const ta = a.scheduled_time || a.match_key;
+        const tb = b.scheduled_time || b.match_key;
+        return (tb || "").localeCompare(ta || "");
+      })
+      .slice(0, 5);
 
-    // Save to cache
-    cache = {
-      timestamp: now,
-      data: payload
-    };
+    // 2) Helper to get participants for ONE match
+    async function fetchParticipantsForMatch(matchKey) {
+      const url = `https://theorangealliance.org/api/match/${matchKey}/participants`;
+      const res = await fetch(url, { headers: baseHeaders });
 
+      if (!res.ok) {
+        // Don't blow up the whole request; just return empty
+        return { red: [], blue: [] };
+      }
+
+      const participants = await res.json();
+
+      const red = [];
+      const blue = [];
+
+      // Example from your JSON:
+      // station 11, 12 = Red alliance teams
+      // station 21, 22 = Blue alliance teams
+      participants.forEach(p => {
+        if (!p.team) return;
+        const label = `${p.team.team_number} ${p.team.team_name_short}`;
+        if (p.station === 11 || p.station === 12) {
+          red.push(label);
+        } else if (p.station === 21 || p.station === 22) {
+          blue.push(label);
+        }
+      });
+
+      return { red, blue };
+    }
+
+    // 3) Enrich matches with alliance team info (with rate-limit safety)
+    const enriched = [];
+    for (const m of matches) {
+      let alliances = { red: [], blue: [] };
+
+      try {
+        alliances = await fetchParticipantsForMatch(m.match_key);
+      } catch (e) {
+        // If TOA rate-limits or errors, just leave alliances empty
+        alliances = { red: [], blue: [] };
+      }
+
+      enriched.push({
+        ...m,
+        red_alliance: alliances.red,
+        blue_alliance: alliances.blue
+      });
+    }
+
+    // 4) Return matches + timestamp
     return {
       statusCode: 200,
-      body: JSON.stringify(payload)
+      body: JSON.stringify({
+        matches: enriched,
+        generated_at: new Date().toISOString()
+      })
     };
   } catch (err) {
     return {
