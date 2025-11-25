@@ -1030,43 +1030,40 @@ async function loadMatchResults() {
 
   try {
     const res = await fetch("/.netlify/functions/get-matches");
-    if (!res.ok) {
-      const txt = await res.text().catch(() => "");
-      console.error("Function HTTP error:", res.status, txt);
-      throw new Error("Netlify function returned " + res.status);
-    }
+    if (!res.ok) throw new Error("Bad response");
 
     const data = await res.json();
-    console.log("TOA data:", data);
 
-    // Data might be { matches: [...] } or just [...]
-    const matches = Array.isArray(data) ? data : data.matches;
-
-    if (!matches || !Array.isArray(matches) || matches.length === 0) {
+    if (!data || !Array.isArray(data.matches) || data.matches.length === 0) {
       container.innerHTML = `
         <p class="muted">No match results available yet for Team 11254.</p>
       `;
       return;
     }
 
+    // Format timestamp (fallback if missing)
+    let lastUpdatedText = "";
+    if (data.fetched_at) {
+      const dt = new Date(data.fetched_at);
+      const formatted = dt.toLocaleString("en-US", {
+        timeZone: "America/Detroit",
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+        hour: "numeric",
+        minute: "2-digit"
+      });
+      lastUpdatedText = `<p class="muted" style="margin-top:.3rem;font-size:.85rem;">Last updated: ${formatted}</p>`;
+    }
+
     let html = `
       <h3>Robo Rhinos • Team 11254</h3>
       <p class="muted">Latest match results pulled live from The Orange Alliance.</p>
+      ${lastUpdatedText}
       <div style="margin-top:1rem;display:grid;gap:.7rem;">
     `;
 
-    matches.forEach(m => {
-      // TOA fields may differ; use safe fallbacks
-      const matchKey = m.match_key || m.matchKey || "Unknown Match";
-      const eventName = m.event_name || m.eventName || "Unknown Event";
-      const level = m.tournament_level || m.tournamentLevel || "";
-      const redScore = m.red_score ?? m.redScore ?? "?";
-      const blueScore = m.blue_score ?? m.blueScore ?? "?";
-
-      let resultText = "Tie";
-      if (redScore > blueScore) resultText = "Red Wins";
-      else if (blueScore > redScore) resultText = "Blue Wins";
-
+    data.matches.forEach(m => {
       html += `
         <div style="
           padding:1rem;
@@ -1074,12 +1071,20 @@ async function loadMatchResults() {
           border-radius:12px;
           background:#2d2f33;
         ">
-          <strong>Match ${matchKey}</strong><br>
-          <span class="muted">${eventName} ${level ? "– " + level : ""}</span>
+          <strong>Match ${m.match_key}</strong><br>
+          <span class="muted">
+            ${m.event_name || "Unknown Event"} – ${m.tournament_level || ""}
+          </span>
           <br><br>
-          <div><strong>Red Alliance:</strong> ${redScore}</div>
-          <div><strong>Blue Alliance:</strong> ${blueScore}</div>
-          <div><strong>Result:</strong> ${resultText}</div>
+          <div><strong>Red Alliance:</strong> ${m.red_score}</div>
+          <div><strong>Blue Alliance:</strong> ${m.blue_score}</div>
+          <div><strong>Result:</strong> ${
+            m.red_score > m.blue_score
+              ? "Red Wins"
+              : m.blue_score > m.red_score
+              ? "Blue Wins"
+              : "Tie"
+          }</div>
         </div>
       `;
     });
@@ -1088,11 +1093,11 @@ async function loadMatchResults() {
     container.innerHTML = html;
 
   } catch (err) {
-    console.error("loadMatchResults error:", err);
+    console.error(err);
     container.innerHTML = `
       <p style="color:#ff6b6b;">
         ⚠️ Could not load match data.<br>
-        <span class="muted">Check the Netlify Function <strong>get-matches</strong> and TOA_API_KEY.</span>
+        Check the Netlify Function <strong>get-matches</strong> and <code>TOA_API_KEY</code>.
       </p>
     `;
   }
