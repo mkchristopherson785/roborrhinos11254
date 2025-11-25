@@ -1,4 +1,12 @@
-import fetch from "node-fetch";
+// netlify/functions/get-matches.js
+
+// Simple in-memory cache to avoid TOA 429 rate limits
+let cache = {
+  timestamp: 0,
+  data: null,
+};
+
+const CACHE_TTL_MS = 60 * 1000; // 1 minute
 
 export async function handler(event, context) {
   const API_KEY = process.env.TOA_API_KEY;
@@ -7,8 +15,17 @@ export async function handler(event, context) {
     return {
       statusCode: 500,
       body: JSON.stringify({
-        error: "Missing TOA_API_KEY environment variable"
-      })
+        error: "Missing TOA_API_KEY environment variable",
+      }),
+    };
+  }
+
+  // ✅ Serve cached data if it's still fresh
+  const now = Date.now();
+  if (cache.data && now - cache.timestamp < CACHE_TTL_MS) {
+    return {
+      statusCode: 200,
+      body: JSON.stringify(cache.data),
     };
   }
 
@@ -18,7 +35,7 @@ export async function handler(event, context) {
   const baseHeaders = {
     accept: "application/json",
     "X-TOA-Key": API_KEY,
-    "X-Application-Origin": "RoboRhinosWebsite"
+    "X-Application-Origin": "RoboRhinosWebsite",
   };
 
   try {
@@ -30,27 +47,26 @@ export async function handler(event, context) {
 
     if (!matchesRes.ok) {
       const text = await matchesRes.text();
+      // If TOA rate-limits (429) or errors, pass a helpful message to the frontend
       return {
         statusCode: matchesRes.status,
         body: JSON.stringify({
           error: "TOA matches error",
           status: matchesRes.status,
-          body: text
-        })
+          body: text,
+        }),
       };
     }
 
     const allMatches = await matchesRes.json();
 
-    // ➜ Keep this small to avoid hitting rate limits:
-    //    sort newest first, then take top 5
+    // Sort newest first (by scheduled_time, fallback to match_key) and keep only top 5
     const matches = allMatches
-      .slice() // copy
+      .slice()
       .sort((a, b) => {
-        // Fall back to match_key if no scheduled time
-        const ta = a.scheduled_time || a.match_key;
-        const tb = b.scheduled_time || b.match_key;
-        return (tb || "").localeCompare(ta || "");
+        const ta = a.scheduled_time || a.match_key || "";
+        const tb = b.scheduled_time || b.match_key || "";
+        return tb.localeCompare(ta);
       })
       .slice(0, 5);
 
@@ -60,19 +76,17 @@ export async function handler(event, context) {
       const res = await fetch(url, { headers: baseHeaders });
 
       if (!res.ok) {
-        // Don't blow up the whole request; just return empty
+        // Don't kill the whole function if this fails; just return no alliances
         return { red: [], blue: [] };
       }
 
       const participants = await res.json();
-
       const red = [];
       const blue = [];
 
-      // Example from your JSON:
-      // station 11, 12 = Red alliance teams
-      // station 21, 22 = Blue alliance teams
-      participants.forEach(p => {
+      // station 11, 12 = Red alliance
+      // station 21, 22 = Blue alliance
+      participants.forEach((p) => {
         if (!p.team) return;
         const label = `${p.team.team_number} ${p.team.team_name_short}`;
         if (p.station === 11 || p.station === 12) {
@@ -85,7 +99,7 @@ export async function handler(event, context) {
       return { red, blue };
     }
 
-    // 3) Enrich matches with alliance team info (with rate-limit safety)
+    // 3) Enrich matches with alliance info (try/catch per match to avoid 429 issues)
     const enriched = [];
     for (const m of matches) {
       let alliances = { red: [], blue: [] };
@@ -93,31 +107,35 @@ export async function handler(event, context) {
       try {
         alliances = await fetchParticipantsForMatch(m.match_key);
       } catch (e) {
-        // If TOA rate-limits or errors, just leave alliances empty
         alliances = { red: [], blue: [] };
       }
 
       enriched.push({
         ...m,
         red_alliance: alliances.red,
-        blue_alliance: alliances.blue
+        blue_alliance: alliances.blue,
       });
     }
 
-    // 4) Return matches + timestamp
+    // 4) Include a generated_at timestamp and cache the result
+    const payload = {
+      matches: enriched,
+      generated_at: new Date().toISOString(),
+    };
+
+    cache.data = payload;
+    cache.timestamp = Date.now();
+
     return {
       statusCode: 200,
-      body: JSON.stringify({
-        matches: enriched,
-        generated_at: new Date().toISOString()
-      })
+      body: JSON.stringify(payload),
     };
   } catch (err) {
     return {
       statusCode: 500,
       body: JSON.stringify({
-        error: err.message || "Unknown error"
-      })
+        error: err.message || "Unknown error",
+      }),
     };
   }
 }
