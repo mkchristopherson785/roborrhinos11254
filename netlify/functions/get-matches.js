@@ -13,8 +13,7 @@ export async function handler(event, context) {
   }
 
   try {
-    // Hard-code the event for now (update this to your current event)
-    // Example: 2526-FIM-NOQ
+    // Current event key (update as needed)
     const EVENT_KEY = "2526-FIM-NOQ";
 
     const url = `https://theorangealliance.org/api/event/${EVENT_KEY}/matches`;
@@ -41,10 +40,13 @@ export async function handler(event, context) {
 
     const matches = await response.json();
 
-    // Wrap in { matches } so the HTML code you already have keeps working
+    // Timestamp when we fetched from TOA
+    const fetched_at = new Date().toISOString();
+
+    // Wrap so your front-end can read { matches, fetched_at }
     return {
       statusCode: 200,
-      body: JSON.stringify({ matches })
+      body: JSON.stringify({ matches, fetched_at })
     };
   } catch (err) {
     return {
