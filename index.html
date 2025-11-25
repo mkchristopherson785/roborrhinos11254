@@ -1030,53 +1030,46 @@ async function loadMatchResults() {
 
   try {
     const res = await fetch("/.netlify/functions/get-matches");
-    if (!res.ok) throw new Error("Bad response from Netlify function");
-
     const data = await res.json();
-    const matches = Array.isArray(data.matches) ? data.matches : [];
 
-    if (!matches.length) {
+    if (!res.ok) {
+      throw new Error(data?.error || "Bad response from function");
+    }
+
+    if (!data || !Array.isArray(data.matches) || data.matches.length === 0) {
       container.innerHTML = `
         <p class="muted">No match results available yet for Team 11254.</p>
       `;
       return;
     }
 
-    const updated = data.generated_at
-      ? new Date(data.generated_at).toLocaleString("en-US", {
-          month: "short",
-          day: "numeric",
-          hour: "2-digit",
-          minute: "2-digit"
-        })
-      : null;
+    const lastUpdated = data.generated_at
+      ? new Date(data.generated_at).toLocaleString()
+      : "";
 
     let html = `
       <h3>Robo Rhinos • Team 11254</h3>
       <p class="muted">
-        Latest match results pulled live from The Orange Alliance.
-        ${updated ? `<br><small>Last updated: ${updated}</small>` : ""}
+        Latest match results pulled live from The Orange Alliance.<br>
+        ${lastUpdated ? `<span>Last updated: ${lastUpdated}</span>` : ""}
       </p>
       <div style="margin-top:1rem;display:grid;gap:.7rem;">
     `;
 
-    matches.forEach((m) => {
-      const redTeams = (m.red_teams || []).map(t => {
-        const num = t.team_number || t.team_key || "";
-        const name = t.team_name_short ? ` (${t.team_name_short})` : "";
-        return `${num}${name}`;
-      }).join(", ") || "TBD";
+    // You can limit how many you show if you want (e.g., slice(0, 10))
+    data.matches.forEach((m) => {
+      const eventName = m.event_name || data.event_key || "Event";
+      const matchLabel = m.match_key || "Match";
+      const level = m.tournament_level || "";
 
-      const blueTeams = (m.blue_teams || []).map(t => {
-        const num = t.team_number || t.team_key || "";
-        const name = t.team_name_short ? ` (${t.team_name_short})` : "";
-        return `${num}${name}`;
-      }).join(", ") || "TBD";
+      const redScore = m.red_score ?? "TBD";
+      const blueScore = m.blue_score ?? "TBD";
 
-      const redScore = (m.red_score == null || m.red_score < 0) ? "TBD" : m.red_score;
-      const blueScore = (m.blue_score == null || m.blue_score < 0) ? "TBD" : m.blue_score;
-
-      const levelLabel = m.tournament_level || "Match";
+      let resultText = "Tie";
+      if (typeof redScore === "number" && typeof blueScore === "number") {
+        if (redScore > blueScore) resultText = "Red Wins";
+        else if (blueScore > redScore) resultText = "Blue Wins";
+      }
 
       html += `
         <div style="
@@ -1085,27 +1078,18 @@ async function loadMatchResults() {
           border-radius:12px;
           background:#2d2f33;
         ">
-          <strong>${levelLabel} ${m.match_number ?? ""}</strong>
-          <br>
-          <span class="muted">${m.match_key}</span>
+          <strong>${matchLabel}</strong><br>
+          <span class="muted">${eventName}${level ? " – " + level : ""}</span>
           <br><br>
-          <div><strong>Red Alliance:</strong> ${redTeams} — <strong>${redScore}</strong></div>
-          <div><strong>Blue Alliance:</strong> ${blueTeams} — <strong>${blueScore}</strong></div>
-          <div style="margin-top:.35rem;">
-            <strong>Result:</strong>
-            ${
-              redScore === "TBD" || blueScore === "TBD"
-                ? "Not played yet"
-                : (redScore > blueScore ? "Red Wins" : blueScore > redScore ? "Blue Wins" : "Tie")
-            }
-          </div>
+          <div><strong>Red Alliance Score:</strong> ${redScore}</div>
+          <div><strong>Blue Alliance Score:</strong> ${blueScore}</div>
+          <div><strong>Result:</strong> ${resultText}</div>
         </div>
       `;
     });
 
     html += "</div>";
     container.innerHTML = html;
-
   } catch (err) {
     console.error(err);
     container.innerHTML = `
