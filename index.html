@@ -1030,88 +1030,74 @@ async function loadMatchResults() {
 
   try {
     const res = await fetch("/.netlify/functions/get-matches");
-    if (!res.ok) throw new Error("Bad response from get-matches");
+    if (!res.ok) throw new Error("Bad response from Netlify function");
 
     const data = await res.json();
+    const matches = Array.isArray(data.matches) ? data.matches : [];
 
-    if (!data || !Array.isArray(data.matches) || data.matches.length === 0) {
+    if (!matches.length) {
       container.innerHTML = `
-        <p class="muted">
-          No match results available yet for Team 11254.<br>
-          Check back after qualification matches have been played.
-        </p>
+        <p class="muted">No match results available yet for Team 11254.</p>
       `;
       return;
     }
 
-    const matches = data.matches;
-    const generatedAt = data.generated_at
-      ? new Date(data.generated_at).toLocaleString()
+    const updated = data.generated_at
+      ? new Date(data.generated_at).toLocaleString("en-US", {
+          month: "short",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit"
+        })
       : null;
 
     let html = `
       <h3>Robo Rhinos • Team 11254</h3>
       <p class="muted">
-        Latest match results from The Orange Alliance
-        ${generatedAt ? `• Last updated: ${generatedAt}` : ""}
+        Latest match results pulled live from The Orange Alliance.
+        ${updated ? `<br><small>Last updated: ${updated}</small>` : ""}
       </p>
-      <div style="margin-top:1rem;display:grid;gap:.9rem;">
+      <div style="margin-top:1rem;display:grid;gap:.7rem;">
     `;
 
     matches.forEach((m) => {
-      const redTeams = (m.red_teams || []).map((t) => {
+      const redTeams = (m.red_teams || []).map(t => {
         const num = t.team_number || t.team_key || "";
-        const name = t.team_name_short || "";
-        const label = name ? `${num} – ${name}` : num;
-
-        // Highlight Robo Rhinos in bold
-        if (String(num) === "11254") {
-          return `<strong>${label}</strong>`;
-        }
-        return label;
+        const name = t.team_name_short ? ` (${t.team_name_short})` : "";
+        return `${num}${name}`;
       }).join(", ") || "TBD";
 
-      const blueTeams = (m.blue_teams || []).map((t) => {
+      const blueTeams = (m.blue_teams || []).map(t => {
         const num = t.team_number || t.team_key || "";
-        const name = t.team_name_short || "";
-        const label = name ? `${num} – ${name}` : num;
-
-        if (String(num) === "11254") {
-          return `<strong>${label}</strong>`;
-        }
-        return label;
+        const name = t.team_name_short ? ` (${t.team_name_short})` : "";
+        return `${num}${name}`;
       }).join(", ") || "TBD";
 
-      let resultText = "Tie";
-      if (typeof m.red_score === "number" && typeof m.blue_score === "number") {
-        if (m.red_score > m.blue_score) resultText = "Red Wins";
-        else if (m.blue_score > m.red_score) resultText = "Blue Wins";
-      }
+      const redScore = (m.red_score == null || m.red_score < 0) ? "TBD" : m.red_score;
+      const blueScore = (m.blue_score == null || m.blue_score < 0) ? "TBD" : m.blue_score;
 
-      const timeLabel = m.scheduled_time
-        ? new Date(m.scheduled_time).toLocaleString()
-        : "";
+      const levelLabel = m.tournament_level || "Match";
 
       html += `
-        <div
-          style="
-            padding:1rem;
-            border:1px solid rgba(255,255,255,0.15);
-            border-radius:12px;
-            background:#2d2f33;
-          "
-        >
-          <strong>${m.name || m.match_key}</strong><br>
-          ${
-            timeLabel
-              ? `<span class="muted">${timeLabel}</span><br>`
-              : ""
-          }
+        <div style="
+          padding:1rem;
+          border:1px solid rgba(255,255,255,0.15);
+          border-radius:12px;
+          background:#2d2f33;
+        ">
+          <strong>${levelLabel} ${m.match_number ?? ""}</strong>
           <br>
-          <div><strong>Red Alliance:</strong> ${redTeams} &nbsp; (${m.red_score ?? "TBD"})</div>
-          <div><strong>Blue Alliance:</strong> ${blueTeams} &nbsp; (${m.blue_score ?? "TBD"})</div>
-          <div style="margin-top:.4rem;">
-            <strong>Result:</strong> ${resultText}
+          <span class="muted">${m.match_key}</span>
+          <br><br>
+          <div><strong>Red Alliance:</strong> ${redTeams} — <strong>${redScore}</strong></div>
+          <div><strong>Blue Alliance:</strong> ${blueTeams} — <strong>${blueScore}</strong></div>
+          <div style="margin-top:.35rem;">
+            <strong>Result:</strong>
+            ${
+              redScore === "TBD" || blueScore === "TBD"
+                ? "Not played yet"
+                : (redScore > blueScore ? "Red Wins" : blueScore > redScore ? "Blue Wins" : "Tie")
+            }
           </div>
         </div>
       `;
@@ -1119,12 +1105,13 @@ async function loadMatchResults() {
 
     html += "</div>";
     container.innerHTML = html;
+
   } catch (err) {
     console.error(err);
     container.innerHTML = `
       <p style="color:#ff6b6b;">
         ⚠️ Could not load match data.<br>
-        Check the Netlify Function <strong>get-matches</strong> and <code>TOA_API_KEY</code>.
+        Check the Netlify Function <strong>get-matches</strong> and <strong>TOA_API_KEY</strong>.
       </p>
     `;
   }
