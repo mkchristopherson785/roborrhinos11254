@@ -1010,6 +1010,34 @@
         </div>
       </div>
     </section>
+    <!-- MATCH RESULTS -->
+    <section id="matches" aria-labelledby="matchtitle">
+      <div class="container">
+        <div class="section-title">
+          <h2 id="matchtitle">Latest Match Results</h2>
+          <span class="tag">Powered by The Orange Alliance</span>
+        </div>
+
+        <div id="match-results" class="card" style="padding:1.5rem;">
+          <p class="muted">Loading match results…</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- MATCH RESULTS -->
+<section id="matches" aria-labelledby="matchtitle">
+  <div class="container">
+    <div class="section-title">
+      <h2 id="matchtitle">Latest Match Results</h2>
+      <span class="tag">Powered by The Orange Alliance</span>
+    </div>
+
+    <div id="match-results" class="card" style="padding:1.5rem;">
+      <p class="muted">Loading match results…</p>
+    </div>
+  </div>
+</section>
+
 <script>
 async function loadMatchResults() {
   const container = document.getElementById("match-results");
@@ -1019,7 +1047,6 @@ async function loadMatchResults() {
     const data = await res.json();
 
     if (!res.ok) {
-      console.error("Function error:", data);
       container.innerHTML = `
         <p style="color:#ff6b6b;">
           ⚠️ Could not load match data.<br>
@@ -1046,10 +1073,11 @@ async function loadMatchResults() {
         Latest match results pulled live from The Orange Alliance.
         ${ts ? `<br><small>Last updated: ${ts}</small>` : ""}
       </p>
+
       <div style="margin-top:1rem;display:grid;gap:.7rem;">
     `;
 
-    data.matches.forEach((m) => {
+    data.matches.forEach(m => {
       const redTeams = (m.red_alliance && m.red_alliance.length)
         ? m.red_alliance.join(", ")
         : "TBD";
@@ -1082,8 +1110,10 @@ async function loadMatchResults() {
             ${m.event_name || "Event"} – ${m.tournament_level || ""}
           </span>
           <br><br>
+
           <div><strong>Red Alliance:</strong> ${redTeams} (${redScore})</div>
           <div><strong>Blue Alliance:</strong> ${blueTeams} (${blueScore})</div>
+
           <div style="margin-top:.4rem;">
             <strong>Result:</strong> ${result}
           </div>
@@ -1093,6 +1123,7 @@ async function loadMatchResults() {
 
     html += "</div>";
     container.innerHTML = html;
+
   } catch (err) {
     console.error(err);
     container.innerHTML = `
