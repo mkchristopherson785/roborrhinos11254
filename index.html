@@ -1030,65 +1030,101 @@ async function loadMatchResults() {
 
   try {
     const res = await fetch("/.netlify/functions/get-matches");
-    if (!res.ok) throw new Error("Bad response");
+    if (!res.ok) throw new Error("Bad response from get-matches");
 
     const data = await res.json();
 
     if (!data || !Array.isArray(data.matches) || data.matches.length === 0) {
       container.innerHTML = `
-        <p class="muted">No match results available yet for Team 11254.</p>
+        <p class="muted">
+          No match results available yet for Team 11254.<br>
+          Check back after qualification matches have been played.
+        </p>
       `;
       return;
     }
 
+    const matches = data.matches;
+    const generatedAt = data.generated_at
+      ? new Date(data.generated_at).toLocaleString()
+      : null;
+
     let html = `
       <h3>Robo Rhinos • Team 11254</h3>
-      <p class="muted">Latest match results pulled live from The Orange Alliance.</p>
-      <div style="margin-top:1rem;display:grid;gap:.7rem;">
+      <p class="muted">
+        Latest match results from The Orange Alliance
+        ${generatedAt ? `• Last updated: ${generatedAt}` : ""}
+      </p>
+      <div style="margin-top:1rem;display:grid;gap:.9rem;">
     `;
 
-    data.matches.forEach((m) => {
-      const redTeams = (m.red_alliance || [])
-        .map(t => `${t.team_number} ${t.team_name_short || ""}`.trim())
-        .join(", ");
+    matches.forEach((m) => {
+      const redTeams = (m.red_teams || []).map((t) => {
+        const num = t.team_number || t.team_key || "";
+        const name = t.team_name_short || "";
+        const label = name ? `${num} – ${name}` : num;
 
-      const blueTeams = (m.blue_alliance || [])
-        .map(t => `${t.team_number} ${t.team_name_short || ""}`.trim())
-        .join(", ");
+        // Highlight Robo Rhinos in bold
+        if (String(num) === "11254") {
+          return `<strong>${label}</strong>`;
+        }
+        return label;
+      }).join(", ") || "TBD";
 
-      const result =
-        m.red_score > m.blue_score ? "Red Wins" :
-        m.blue_score > m.red_score ? "Blue Wins" :
-        "Tie";
+      const blueTeams = (m.blue_teams || []).map((t) => {
+        const num = t.team_number || t.team_key || "";
+        const name = t.team_name_short || "";
+        const label = name ? `${num} – ${name}` : num;
+
+        if (String(num) === "11254") {
+          return `<strong>${label}</strong>`;
+        }
+        return label;
+      }).join(", ") || "TBD";
+
+      let resultText = "Tie";
+      if (typeof m.red_score === "number" && typeof m.blue_score === "number") {
+        if (m.red_score > m.blue_score) resultText = "Red Wins";
+        else if (m.blue_score > m.red_score) resultText = "Blue Wins";
+      }
+
+      const timeLabel = m.scheduled_time
+        ? new Date(m.scheduled_time).toLocaleString()
+        : "";
 
       html += `
-        <div style="
-          padding:1rem;
-          border:1px solid rgba(255,255,255,0.15);
-          border-radius:12px;
-          background:#2d2f33;
-        ">
-          <strong>${m.match_key}</strong><br>
-          <span class="muted">
-            ${(m.event_name || "Event")} – ${m.tournament_level || ""}
-          </span>
-          <br><br>
-          <div><strong>Red Alliance:</strong> ${redTeams || "TBD"} (${m.red_score ?? "–"})</div>
-          <div><strong>Blue Alliance:</strong> ${blueTeams || "TBD"} (${m.blue_score ?? "–"})</div>
-          <div style="margin-top:.4rem;"><strong>Result:</strong> ${result}</div>
+        <div
+          style="
+            padding:1rem;
+            border:1px solid rgba(255,255,255,0.15);
+            border-radius:12px;
+            background:#2d2f33;
+          "
+        >
+          <strong>${m.name || m.match_key}</strong><br>
+          ${
+            timeLabel
+              ? `<span class="muted">${timeLabel}</span><br>`
+              : ""
+          }
+          <br>
+          <div><strong>Red Alliance:</strong> ${redTeams} &nbsp; (${m.red_score ?? "TBD"})</div>
+          <div><strong>Blue Alliance:</strong> ${blueTeams} &nbsp; (${m.blue_score ?? "TBD"})</div>
+          <div style="margin-top:.4rem;">
+            <strong>Result:</strong> ${resultText}
+          </div>
         </div>
       `;
     });
 
     html += "</div>";
     container.innerHTML = html;
-
   } catch (err) {
     console.error(err);
     container.innerHTML = `
       <p style="color:#ff6b6b;">
         ⚠️ Could not load match data.<br>
-        Check the Netlify Function <strong>get-matches</strong> and TOA_API_KEY.
+        Check the Netlify Function <strong>get-matches</strong> and <code>TOA_API_KEY</code>.
       </p>
     `;
   }
