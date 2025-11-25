@@ -1010,99 +1010,129 @@
         </div>
       </div>
     </section>
-<!-- MATCH RESULTS -->
-<section id="matches" aria-labelledby="matchtitle">
-  <div class="container">
-    <div class="section-title">
-      <h2 id="matchtitle">Latest Match Results</h2>
-      <span class="tag">Powered by The Orange Alliance</span>
-    </div>
+import fetch from "node-fetch";
 
-    <div id="match-results" class="card" style="padding:1.5rem;">
-      <p class="muted">Loading match results…</p>
-    </div>
-  </div>
-</section>
+export async function handler(event, context) {
+  const API_KEY = process.env.TOA_API_KEY;
 
-<script>
-async function loadMatchResults() {
-  const container = document.getElementById("match-results");
+  if (!API_KEY) {
+    return {
+      statusCode: 500,
+      body: JSON.stringify({
+        error: "Missing TOA_API_KEY environment variable"
+      })
+    };
+  }
+
+  // 🔧 UPDATE THIS when you move to a new event
+  const EVENT_KEY = "2526-FIM-NOQ";
+
+  const baseHeaders = {
+    accept: "application/json",
+    "X-TOA-Key": API_KEY,
+    "X-Application-Origin": "RoboRhinosWebsite"
+  };
 
   try {
-    const res = await fetch("/.netlify/functions/get-matches");
-    const data = await res.json();
+    // 1) Get all matches for this event
+    const matchesRes = await fetch(
+      `https://theorangealliance.org/api/event/${EVENT_KEY}/matches`,
+      { headers: baseHeaders }
+    );
 
-    if (!res.ok) {
-      throw new Error(data?.error || "Bad response from function");
+    if (!matchesRes.ok) {
+      const text = await matchesRes.text();
+      return {
+        statusCode: matchesRes.status,
+        body: JSON.stringify({
+          error: "TOA matches error",
+          status: matchesRes.status,
+          body: text
+        })
+      };
     }
 
-    if (!data || !Array.isArray(data.matches) || data.matches.length === 0) {
-      container.innerHTML = `
-        <p class="muted">No match results available yet for Team 11254.</p>
-      `;
-      return;
-    }
+    const allMatches = await matchesRes.json();
 
-    const lastUpdated = data.generated_at
-      ? new Date(data.generated_at).toLocaleString()
-      : "";
+    // ➜ Keep this small to avoid hitting rate limits:
+    //    sort newest first, then take top 5
+    const matches = allMatches
+      .slice() // copy
+      .sort((a, b) => {
+        // Fall back to match_key if no scheduled time
+        const ta = a.scheduled_time || a.match_key;
+        const tb = b.scheduled_time || b.match_key;
+        return (tb || "").localeCompare(ta || "");
+      })
+      .slice(0, 5);
 
-    let html = `
-      <h3>Robo Rhinos • Team 11254</h3>
-      <p class="muted">
-        Latest match results pulled live from The Orange Alliance.<br>
-        ${lastUpdated ? `<span>Last updated: ${lastUpdated}</span>` : ""}
-      </p>
-      <div style="margin-top:1rem;display:grid;gap:.7rem;">
-    `;
+    // 2) Helper to get participants for ONE match
+    async function fetchParticipantsForMatch(matchKey) {
+      const url = `https://theorangealliance.org/api/match/${matchKey}/participants`;
+      const res = await fetch(url, { headers: baseHeaders });
 
-    // You can limit how many you show if you want (e.g., slice(0, 10))
-    data.matches.forEach((m) => {
-      const eventName = m.event_name || data.event_key || "Event";
-      const matchLabel = m.match_key || "Match";
-      const level = m.tournament_level || "";
-
-      const redScore = m.red_score ?? "TBD";
-      const blueScore = m.blue_score ?? "TBD";
-
-      let resultText = "Tie";
-      if (typeof redScore === "number" && typeof blueScore === "number") {
-        if (redScore > blueScore) resultText = "Red Wins";
-        else if (blueScore > redScore) resultText = "Blue Wins";
+      if (!res.ok) {
+        // Don't blow up the whole request; just return empty
+        return { red: [], blue: [] };
       }
 
-      html += `
-        <div style="
-          padding:1rem;
-          border:1px solid rgba(255,255,255,0.15);
-          border-radius:12px;
-          background:#2d2f33;
-        ">
-          <strong>${matchLabel}</strong><br>
-          <span class="muted">${eventName}${level ? " – " + level : ""}</span>
-          <br><br>
-          <div><strong>Red Alliance Score:</strong> ${redScore}</div>
-          <div><strong>Blue Alliance Score:</strong> ${blueScore}</div>
-          <div><strong>Result:</strong> ${resultText}</div>
-        </div>
-      `;
-    });
+      const participants = await res.json();
 
-    html += "</div>";
-    container.innerHTML = html;
+      const red = [];
+      const blue = [];
+
+      // Example from your JSON:
+      // station 11, 12 = Red alliance teams
+      // station 21, 22 = Blue alliance teams
+      participants.forEach(p => {
+        if (!p.team) return;
+        const label = `${p.team.team_number} ${p.team.team_name_short}`;
+        if (p.station === 11 || p.station === 12) {
+          red.push(label);
+        } else if (p.station === 21 || p.station === 22) {
+          blue.push(label);
+        }
+      });
+
+      return { red, blue };
+    }
+
+    // 3) Enrich matches with alliance team info (with rate-limit safety)
+    const enriched = [];
+    for (const m of matches) {
+      let alliances = { red: [], blue: [] };
+
+      try {
+        alliances = await fetchParticipantsForMatch(m.match_key);
+      } catch (e) {
+        // If TOA rate-limits or errors, just leave alliances empty
+        alliances = { red: [], blue: [] };
+      }
+
+      enriched.push({
+        ...m,
+        red_alliance: alliances.red,
+        blue_alliance: alliances.blue
+      });
+    }
+
+    // 4) Return matches + timestamp
+    return {
+      statusCode: 200,
+      body: JSON.stringify({
+        matches: enriched,
+        generated_at: new Date().toISOString()
+      })
+    };
   } catch (err) {
-    console.error(err);
-    container.innerHTML = `
-      <p style="color:#ff6b6b;">
-        ⚠️ Could not load match data.<br>
-        Check the Netlify Function <strong>get-matches</strong> and <strong>TOA_API_KEY</strong>.
-      </p>
-    `;
+    return {
+      statusCode: 500,
+      body: JSON.stringify({
+        error: err.message || "Unknown error"
+      })
+    };
   }
 }
-
-loadMatchResults();
-</script>
     <!-- AWARDS -->
     <section id="awards" aria-labelledby="awardstitle">
       <div class="container">
