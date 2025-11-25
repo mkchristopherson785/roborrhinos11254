@@ -1,65 +1,57 @@
-// netlify/functions/get-matches.js
+import fetch from "node-fetch";
 
 export async function handler(event, context) {
   const API_KEY = process.env.TOA_API_KEY;
 
-  // 1) Guard: make it VERY obvious if Netlify env var isn't set
   if (!API_KEY) {
     return {
       statusCode: 500,
       body: JSON.stringify({
-        error: "Missing TOA_API_KEY environment variable on Netlify.",
-      }),
-      headers: {
-        "Content-Type": "application/json",
-      },
+        error: "Missing TOA_API_KEY environment variable"
+      })
     };
   }
 
   try {
-    // 2) Use the FTC-style team key
-    const url = "https://theorangealliance.org/api/team/ftc11254/matches";
+    // Hard-code the event for now (update this to your current event)
+    // Example: 2526-FIM-NOQ
+    const EVENT_KEY = "2526-FIM-NOQ";
+
+    const url = `https://theorangealliance.org/api/event/${EVENT_KEY}/matches`;
 
     const response = await fetch(url, {
       headers: {
         accept: "application/json",
         "X-TOA-Key": API_KEY,
-        "X-Application-Origin": "RoboRhinosWebsite",
-      },
+        "X-Application-Origin": "RoboRhinosWebsite"
+      }
     });
 
-    // For debugging, we return TOA's body + status if it fails
-    const text = await response.text();
-
     if (!response.ok) {
-      console.error("TOA error:", response.status, text);
+      const text = await response.text();
       return {
         statusCode: response.status,
-        body: text, // pass TOA's JSON straight through so you can see it
-        headers: {
-          "Content-Type": "application/json",
-        },
+        body: JSON.stringify({
+          error: "TOA error",
+          status: response.status,
+          body: text
+        })
       };
     }
 
-    // 3) When OK, parse JSON & wrap as { matches: [...] }
-    const matches = JSON.parse(text);
+    const matches = await response.json();
 
+    // Wrap in { matches } so the HTML code you already have keeps working
     return {
       statusCode: 200,
-      body: JSON.stringify({ matches }),
-      headers: {
-        "Content-Type": "application/json",
-      },
+      body: JSON.stringify({ matches })
     };
   } catch (err) {
-    console.error("Function error:", err);
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: err.message }),
-      headers: {
-        "Content-Type": "application/json",
-      },
+      body: JSON.stringify({
+        error: err.message || "Unknown error"
+      })
     };
   }
 }
